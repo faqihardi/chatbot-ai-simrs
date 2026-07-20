@@ -13,7 +13,6 @@ embeddings = GoogleGenerativeAIEmbeddings(
 def generate_embedding(text: str) -> list[float]:
     """
     Generate embedding via Gemini API.
-    Fungsi murni, tidak mengakses database.
     """
     return embeddings.embed_query(text)
 

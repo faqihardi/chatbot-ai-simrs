@@ -1,7 +1,6 @@
 def chunk_text(text: str, max_words: int = 300) -> list[str]:
     """
     Pecah dokumen menjadi potongan kata dengan panjang maksimal `max_words`.
-    Fungsi murni, tidak mengakses database.
     """
     if not text:
         return []
