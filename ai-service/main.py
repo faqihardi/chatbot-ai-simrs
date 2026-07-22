@@ -7,6 +7,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from tools.rag import search_knowledge_base
+from tools.action import get_available_doctors, book_appointment, check_my_appointments
 
 load_dotenv()
 
@@ -28,12 +29,56 @@ def search_knowledge_base_tool(query: str) -> str:
     """
     return search_knowledge_base(query)
 
-tools = [search_knowledge_base_tool]
+@tool
+def get_available_doctors_tool(poli: str, tanggal: Optional[str] = None) -> str:
+    """
+    Gunakan fungsi ini untuk mencari jadwal dokter yang tersedia di poli tertentu.
+    Input `poli` bisa nama poli (misal: 'Penyakit Dalam', 'Kandungan') atau kode poli (misal: 'INT', 'OBG').
+    Input `tanggal` opsional dalam format 'YYYY-MM-DD'.
+    Mengembalikan data slot jadwal dokter yang aktif dan bisa di-booking.
+    """
+    return get_available_doctors(poli, tanggal)
+
+@tool
+def book_appointment_tool(slot_id: int, patient_name: str, contact: str, payment_type: Optional[str] = "umum") -> str:
+    """
+    Gunakan fungsi ini jika pengguna secara eksplisit meminta Anda mendaftarkan mereka atau membuatkan janji temu dokter baru di slot jadwal tertentu.
+    Input:
+    - slot_id: ID slot jadwal yang dipilih.
+    - patient_name: Nama lengkap pasien.
+    - contact: Nomor HP/kontak pasien.
+    - payment_type: Jenis pembayaran ('umum', 'bpjs', 'asuransi').
+    Mengembalikan detail booking jika pendaftaran berhasil.
+    """
+    return book_appointment(slot_id, patient_name, contact, payment_type)
+
+@tool
+def check_my_appointments_tool(contact: str) -> str:
+    """
+    Gunakan fungsi ini jika pengguna ingin memeriksa status janji temu (booking) aktif mereka.
+    Input:
+    - contact: Nomor HP/kontak pasien yang digunakan saat pendaftaran.
+    Mengembalikan daftar janji temu pasien yang terdaftar.
+    """
+    return check_my_appointments(contact)
+
+tools = [
+    search_knowledge_base_tool, 
+    get_available_doctors_tool,
+    book_appointment_tool,
+    check_my_appointments_tool
+]
 
 
 system_prompt = """Anda adalah asisten virtual (Customer Service) resmi SIMRS.
-Tugas Anda adalah menjawab pertanyaan pasien menggunakan informasi dari basis pengetahuan (knowledge base) RS.
-- SELALU panggil tool `search_knowledge_base_tool` jika pengguna bertanya tentang layanan, administrasi, syarat pendaftaran, atau kebijakan RS.
+Tugas Anda adalah menjawab pertanyaan pasien menggunakan informasi dari basis pengetahuan (knowledge base) RS, mencari jadwal dokter, mendaftarkan janji temu, atau mengecek janji temu yang ada.
+- SELALU panggil tool `search_knowledge_base_tool` jika pengguna bertanya tentang layanan umum, administrasi, syarat pendaftaran, atau kebijakan RS.
+- SELALU panggil tool `get_available_doctors_tool` jika pengguna ingin mencari jadwal dokter atau berniat melakukan pendaftaran/booking dokter di poli tertentu.
+- JIKA tool `get_available_doctors_tool` mengembalikan data jadwal dokter, Anda wajib menyampaikannya secara tertulis dengan ramah, DAN menyertakan JSON data mentah yang dikembalikan tool tersebut secara utuh di akhir jawaban Anda, diapit oleh tag <JadwalData>JSON_DI_SINI</JadwalData> agar sistem dapat merender kartu jadwal interaktif (JadwalCard) di layar.
+- SELALU panggil tool `book_appointment_tool` jika pengguna memberikan data lengkap (ID slot, Nama Pasien, Nomor HP, dan jenis pembayaran) untuk membuat janji temu baru.
+- JIKA tool `book_appointment_tool` mengembalikan sukses, sampaikan detail konfirmasi pendaftaran secara tertulis (nomor booking, nomor antrean, nama dokter, hari, tanggal, jam), DAN sertakan JSON data mentah secara utuh di akhir jawaban Anda, diapit oleh tag <BookingSuccess>JSON_DI_SINI</BookingSuccess> agar sistem dapat merender kartu konfirmasi sukses.
+- SELALU panggil tool `check_my_appointments_tool` jika pengguna ingin mencari/melihat daftar janji temu miliknya menggunakan nomor HP/kontak.
+- JIKA tool `check_my_appointments_tool` mengembalikan daftar janji temu, sampaikan daftarnya secara tertulis, DAN sertakan JSON data mentah secara utuh di akhir jawaban Anda, diapit oleh tag <AppointmentsList>JSON_DI_SINI</AppointmentsList> agar sistem dapat merender daftar tersebut secara interaktif.
 - Jika tool mengembalikan "informasi tidak ditemukan", JANGAN MENGARANG JAWABAN (HALUSINASI). Sampaikan dengan sopan bahwa Anda tidak memiliki informasi tersebut atau arahkan untuk menghubungi CS manusia.
 - JANGAN PERNAH menjawab pertanyaan medis, diagnostik, atau memberikan resep.
 - Berikan jawaban yang ramah, profesional, dan ringkas. Jangan membuat paragraf yang terlalu panjang.
