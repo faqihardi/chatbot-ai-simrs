@@ -16,6 +16,7 @@ import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
 import ThemeToggleButton from '../Components/ThemeToggleButton';
+import JadwalCard from '../Components/JadwalCard';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -28,6 +29,164 @@ export default function Chat() {
     const [loading, setLoading] = useState(false);
     const [token, setToken] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const renderMessageContent = (content: string) => {
+        // Regex pattern matches
+        const jadwalRegex = /<JadwalData>([\s\S]*?)<\/JadwalData>/;
+        const bookingSuccessRegex = /<BookingSuccess>([\s\S]*?)<\/BookingSuccess>/;
+        const appointmentsRegex = /<AppointmentsList>([\s\S]*?)<\/AppointmentsList>/;
+
+        let cleanText = content;
+        let scheduleData = null;
+        let bookingSuccessData = null;
+        let appointmentsListData = null;
+
+        // 1. Check for schedules
+        const jadwalMatch = content.match(jadwalRegex);
+        if (jadwalMatch) {
+            cleanText = cleanText.replace(jadwalRegex, '');
+            try {
+                scheduleData = JSON.parse(jadwalMatch[1].trim());
+            } catch (e) {
+                console.error("Failed to parse JadwalData JSON", e);
+            }
+        }
+
+        // 2. Check for booking success
+        const bookingMatch = content.match(bookingSuccessRegex);
+        if (bookingMatch) {
+            cleanText = cleanText.replace(bookingSuccessRegex, '');
+            try {
+                bookingSuccessData = JSON.parse(bookingMatch[1].trim());
+            } catch (e) {
+                console.error("Failed to parse BookingSuccess JSON", e);
+            }
+        }
+
+        // 3. Check for appointments list
+        const appointmentsMatch = content.match(appointmentsRegex);
+        if (appointmentsMatch) {
+            cleanText = cleanText.replace(appointmentsRegex, '');
+            try {
+                appointmentsListData = JSON.parse(appointmentsMatch[1].trim());
+            } catch (e) {
+                console.error("Failed to parse AppointmentsList JSON", e);
+            }
+        }
+
+        return (
+            <Box>
+                {cleanText.trim() && (
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-line', mb: (scheduleData || bookingSuccessData || appointmentsListData) ? 1.5 : 0 }}>
+                        {cleanText}
+                    </Typography>
+                )}
+                
+                {scheduleData && token && (
+                    <JadwalCard 
+                        data={scheduleData} 
+                        tokenSesi={token} 
+                        onBookingSuccess={(bookingResult) => {
+                            setMessages((prev) => [
+                                ...prev,
+                                {
+                                    role: 'assistant',
+                                    content: `Pendaftaran berhasil!\n\n<BookingSuccess>${JSON.stringify(bookingResult)}</BookingSuccess>`
+                                }
+                            ]);
+                        }}
+                    />
+                )}
+
+                {bookingSuccessData && (
+                    <Paper 
+                        variant="outlined" 
+                        sx={{ 
+                            p: 2, 
+                            borderLeft: 4, 
+                            borderColor: 'success.main',
+                            bgcolor: 'background.default',
+                            borderRadius: 1.5,
+                            mt: 1
+                        }}
+                    >
+                        <Typography variant="subtitle2" color="success.main" fontWeight="bold" gutterBottom>
+                            Konfirmasi Booking Sukses
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="caption" color="text.secondary">Nomor Booking:</Typography>
+                                <Typography variant="body2" fontWeight="bold">{bookingSuccessData.nomor_booking}</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'primary.light', p: 1, borderRadius: 1, my: 1, color: 'primary.contrastText' }}>
+                                <Typography variant="body2" fontWeight="bold">Nomor Antrean:</Typography>
+                                <Typography variant="h5" fontWeight="black">{bookingSuccessData.nomor_antrean}</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="caption" color="text.secondary">Dokter:</Typography>
+                                <Typography variant="body2">{bookingSuccessData.dokter_nama}</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="caption" color="text.secondary">Poli:</Typography>
+                                <Typography variant="body2">{bookingSuccessData.poli_nama}</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="caption" color="text.secondary">Jadwal:</Typography>
+                                <Typography variant="body2">{bookingSuccessData.tanggal} @ {bookingSuccessData.jam}</Typography>
+                            </Box>
+                        </Box>
+                    </Paper>
+                )}
+
+                {appointmentsListData && (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 1 }}>
+                        <Typography variant="subtitle2" color="primary" fontWeight="bold">
+                            Daftar Janji Temu Aktif Anda
+                        </Typography>
+                        {appointmentsListData.bookings.map((app: any, idx: number) => (
+                            <Paper 
+                                key={idx} 
+                                variant="outlined" 
+                                sx={{ 
+                                    p: 1.5, 
+                                    borderRadius: 1.5,
+                                    bgcolor: 'background.default',
+                                    borderLeft: 4,
+                                    borderColor: app.status === 'terjadwal' ? 'info.main' : 'text.disabled'
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                    <Typography variant="body2" fontWeight="bold" color="primary">{app.dokter_nama}</Typography>
+                                    <Typography 
+                                        variant="caption" 
+                                        sx={{ 
+                                            px: 1, 
+                                            py: 0.2, 
+                                            borderRadius: 1, 
+                                            bgcolor: app.status === 'terjadwal' ? 'info.light' : 'action.disabledBackground',
+                                            color: app.status === 'terjadwal' ? 'info.contrastText' : 'text.secondary',
+                                            textTransform: 'uppercase',
+                                            fontWeight: 'bold'
+                                        }}
+                                    >
+                                        {app.status}
+                                    </Typography>
+                                </Box>
+                                <Typography variant="caption" color="text.secondary" display="block">Poli: {app.poli_nama}</Typography>
+                                <Typography variant="caption" color="text.secondary" display="block">Jadwal: {app.tanggal} @ {app.jam}</Typography>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1, borderTop: 1, pt: 0.5, borderColor: 'divider' }}>
+                                    <Typography variant="caption" color="text.secondary">No. Booking: {app.nomor_booking}</Typography>
+                                    {app.nomor_antrean && (
+                                        <Typography variant="caption" fontWeight="bold">Antrean: {app.nomor_antrean}</Typography>
+                                    )}
+                                </Box>
+                            </Paper>
+                        ))}
+                    </Box>
+                )}
+            </Box>
+        );
+    };
 
     // Initialize session token
     useEffect(() => {
@@ -176,11 +335,10 @@ export default function Chat() {
                                             borderRadius: 2,
                                             borderTopRightRadius: msg.role === 'user' ? 0 : 8,
                                             borderTopLeftRadius: msg.role === 'assistant' ? 0 : 8,
+                                            minWidth: (msg.content.includes('<JadwalData>') || msg.content.includes('<BookingSuccess>') || msg.content.includes('<AppointmentsList>')) ? '320px' : 'auto'
                                         }}
                                     >
-                                        <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-                                            {msg.content}
-                                        </Typography>
+                                        {renderMessageContent(msg.content)}
                                     </Paper>
                                 </Box>
                             </ListItem>
