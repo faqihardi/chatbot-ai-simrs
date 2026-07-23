@@ -18,3 +18,6 @@ Route::post('/api/booking/confirm', [ChatController::class, 'confirmBooking']);
 // Internal API Routes (for FastAPI proxy communication)
 Route::post('/api/internal/booking', [ChatController::class, 'internalBookAppointment']);
 Route::post('/api/internal/appointments', [ChatController::class, 'internalCheckAppointments']);
+Route::post('/api/internal/complaints', [ChatController::class, 'internalSubmitComplaint']);
+Route::post('/api/internal/complaints/status', [ChatController::class, 'internalCheckComplaintStatus']);
+Route::post('/api/internal/complaints/find', [ChatController::class, 'internalFindComplaintsByContact']);

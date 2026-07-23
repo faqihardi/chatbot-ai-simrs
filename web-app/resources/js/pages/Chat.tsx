@@ -35,11 +35,15 @@ export default function Chat() {
         const jadwalRegex = /<JadwalData>([\s\S]*?)<\/JadwalData>/;
         const bookingSuccessRegex = /<BookingSuccess>([\s\S]*?)<\/BookingSuccess>/;
         const appointmentsRegex = /<AppointmentsList>([\s\S]*?)<\/AppointmentsList>/;
+        const complaintStatusRegex = /<ComplaintStatus>([\s\S]*?)<\/ComplaintStatus>/;
+        const complaintsListRegex = /<ComplaintsList>([\s\S]*?)<\/ComplaintsList>/;
 
         let cleanText = content;
         let scheduleData = null;
         let bookingSuccessData = null;
         let appointmentsListData = null;
+        let complaintStatusData = null;
+        let complaintsListData = null;
 
         // 1. Check for schedules
         const jadwalMatch = content.match(jadwalRegex);
@@ -74,10 +78,32 @@ export default function Chat() {
             }
         }
 
+        // 4. Check for complaint status
+        const complaintStatusMatch = content.match(complaintStatusRegex);
+        if (complaintStatusMatch) {
+            cleanText = cleanText.replace(complaintStatusRegex, '');
+            try {
+                complaintStatusData = JSON.parse(complaintStatusMatch[1].trim());
+            } catch (e) {
+                console.error("Failed to parse ComplaintStatus JSON", e);
+            }
+        }
+
+        // 5. Check for complaints list
+        const complaintsListMatch = content.match(complaintsListRegex);
+        if (complaintsListMatch) {
+            cleanText = cleanText.replace(complaintsListRegex, '');
+            try {
+                complaintsListData = JSON.parse(complaintsListMatch[1].trim());
+            } catch (e) {
+                console.error("Failed to parse ComplaintsList JSON", e);
+            }
+        }
+
         return (
             <Box>
                 {cleanText.trim() && (
-                    <Typography variant="body1" sx={{ whiteSpace: 'pre-line', mb: (scheduleData || bookingSuccessData || appointmentsListData) ? 1.5 : 0 }}>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-line', mb: (scheduleData || bookingSuccessData || appointmentsListData || complaintStatusData || complaintsListData) ? 1.5 : 0 }}>
                         {cleanText}
                     </Typography>
                 )}
@@ -180,6 +206,79 @@ export default function Chat() {
                                         <Typography variant="caption" fontWeight="bold">Antrean: {app.nomor_antrean}</Typography>
                                     )}
                                 </Box>
+                            </Paper>
+                        ))}
+                    </Box>
+                )}
+
+                {complaintStatusData && (
+                    <Paper 
+                        variant="outlined" 
+                        sx={{ 
+                            p: 2, 
+                            borderLeft: 4, 
+                            borderColor: complaintStatusData.aduan.status === 'selesai' ? 'success.main' : 'warning.main',
+                            bgcolor: 'background.default',
+                            borderRadius: 1.5,
+                            mt: 1
+                        }}
+                    >
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                            Status Tiket Aduan: <Typography component="span" fontWeight="bold" color="text.primary">{complaintStatusData.aduan.nomor_tiket}</Typography>
+                        </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="caption" color="text.secondary">Status:</Typography>
+                            <Typography variant="body2" fontWeight="bold" sx={{ textTransform: 'uppercase' }}>{complaintStatusData.aduan.status}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="caption" color="text.secondary">Kategori:</Typography>
+                            <Typography variant="body2">{complaintStatusData.aduan.kategori}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="caption" color="text.secondary">Urgensi:</Typography>
+                            <Typography variant="body2">{complaintStatusData.aduan.urgensi}</Typography>
+                        </Box>
+                        {complaintStatusData.aduan.tanggapan && (
+                            <Box sx={{ mt: 1.5, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                                <Typography variant="caption" fontWeight="bold" display="block">Tanggapan Petugas:</Typography>
+                                <Typography variant="body2">{complaintStatusData.aduan.tanggapan}</Typography>
+                            </Box>
+                        )}
+                    </Paper>
+                )}
+
+                {complaintsListData && (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 1 }}>
+                        <Typography variant="subtitle2" color="primary" fontWeight="bold">
+                            Daftar Riwayat Aduan Anda
+                        </Typography>
+                        {complaintsListData.aduans.map((ad: any, idx: number) => (
+                            <Paper 
+                                key={idx} 
+                                variant="outlined" 
+                                sx={{ 
+                                    p: 1.5, 
+                                    borderRadius: 1.5,
+                                    bgcolor: 'background.default',
+                                    borderLeft: 4,
+                                    borderColor: ad.status === 'selesai' ? 'success.main' : (ad.status === 'ditolak' ? 'error.main' : 'warning.main')
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                    <Typography variant="body2" fontWeight="bold">Tiket: {ad.nomor_tiket}</Typography>
+                                    <Typography 
+                                        variant="caption" 
+                                        sx={{ 
+                                            textTransform: 'uppercase',
+                                            fontWeight: 'bold',
+                                            color: ad.status === 'selesai' ? 'success.main' : (ad.status === 'ditolak' ? 'error.main' : 'warning.main')
+                                        }}
+                                    >
+                                        {ad.status}
+                                    </Typography>
+                                </Box>
+                                <Typography variant="caption" color="text.secondary" display="block">Kategori: {ad.kategori}</Typography>
+                                <Typography variant="caption" color="text.secondary" display="block">Dibuat: {ad.created_at}</Typography>
                             </Paper>
                         ))}
                     </Box>

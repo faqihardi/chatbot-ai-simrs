@@ -169,3 +169,99 @@ def check_my_appointments(contact: str) -> str:
     except Exception as e:
         print(f"Error pada check_my_appointments: {e}")
         return "Gagal terhubung dengan layanan informasi janji temu saat ini."
+
+def submit_complaint(submitter_type: str, category: str, description: str, location: str = "", urgency: str = "Sedang", contact: str = "", session_id: str = "") -> str:
+    """
+    Mensubmit aduan ke sistem.
+    """
+    laravel_url = os.getenv("LARAVEL_URL", "http://127.0.0.1:8000")
+    endpoint = f"{laravel_url}/api/internal/complaints"
+    
+    import requests
+    import json
+    
+    try:
+        payload = {
+            "submitter_type": submitter_type,
+            "category": category,
+            "description": description,
+            "location": location,
+            "urgency": urgency,
+            "contact": contact,
+            "session_id": session_id
+        }
+        headers = {"Content-Type": "application/json"}
+        
+        response = requests.post(endpoint, json=payload, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            res_data = response.json()
+            return f"Aduan berhasil dikirim. Nomor Tiket Anda adalah {res_data.get('nomor_tiket')}."
+        else:
+            return f"Gagal mengirim aduan: {response.text}"
+            
+    except Exception as e:
+        print(f"Error pada submit_complaint: {e}")
+        return "Gagal terhubung dengan layanan pengaduan saat ini."
+
+def check_complaint_status(nomor_tiket: str) -> str:
+    """
+    Mengecek status aduan berdasarkan nomor tiket.
+    """
+    laravel_url = os.getenv("LARAVEL_URL", "http://127.0.0.1:8000")
+    endpoint = f"{laravel_url}/api/internal/complaints/status"
+    
+    import requests
+    import json
+    
+    try:
+        payload = {"nomor_tiket": nomor_tiket}
+        headers = {"Content-Type": "application/json"}
+        
+        response = requests.post(endpoint, json=payload, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            aduan = response.json().get("aduan", {})
+            return json.dumps({
+                "type": "complaint_status",
+                "aduan": aduan
+            }, ensure_ascii=False)
+        elif response.status_code == 404:
+            return f"Aduan dengan nomor tiket {nomor_tiket} tidak ditemukan."
+        else:
+            return "Gagal memeriksa status aduan."
+            
+    except Exception as e:
+        print(f"Error pada check_complaint_status: {e}")
+        return "Gagal terhubung dengan layanan informasi aduan."
+
+def find_complaints_by_contact(contact: str) -> str:
+    """
+    Mencari daftar aduan berdasarkan nomor kontak pengadu.
+    """
+    laravel_url = os.getenv("LARAVEL_URL", "http://127.0.0.1:8000")
+    endpoint = f"{laravel_url}/api/internal/complaints/find"
+    
+    import requests
+    import json
+    
+    try:
+        payload = {"kontak": contact}
+        headers = {"Content-Type": "application/json"}
+        
+        response = requests.post(endpoint, json=payload, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            aduans = response.json().get("aduans", [])
+            if not aduans:
+                return f"Tidak ditemukan aduan untuk kontak {contact}."
+            return json.dumps({
+                "type": "complaints_list",
+                "aduans": aduans
+            }, ensure_ascii=False)
+        else:
+            return "Gagal mencari daftar aduan."
+            
+    except Exception as e:
+        print(f"Error pada find_complaints_by_contact: {e}")
+        return "Gagal terhubung dengan layanan informasi aduan."

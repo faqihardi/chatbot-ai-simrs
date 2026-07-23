@@ -282,4 +282,112 @@ class ChatController extends Controller
             ]);
         });
     }
+    /**
+     * Endpoint internal untuk mensubmit aduan
+     */
+    public function internalSubmitComplaint(Request $request)
+    {
+        $request->validate([
+            'submitter_type' => 'required|in:staf,publik',
+            'category' => 'required|string',
+            'description' => 'required|string',
+            'location' => 'nullable|string',
+            'urgency' => 'nullable|string',
+            'contact' => 'nullable|string',
+            'session_id' => 'nullable|string', // token_sesi
+        ]);
+
+        $sesi_id = null;
+        if ($request->session_id) {
+            $sesi = SesiPercakapan::where('token_sesi', $request->session_id)->first();
+            if ($sesi) {
+                $sesi_id = $sesi->id;
+            }
+        }
+
+        $urgencyInput = strtolower($request->urgency ?? 'sedang');
+        if (!in_array($urgencyInput, ['rendah', 'sedang', 'tinggi'])) {
+            $urgencyInput = 'sedang';
+        }
+
+        // Nomor tiket format YYMMDD######
+        $nomorTiket = date('ymd') . strtoupper(Str::random(6));
+
+        $aduan = \App\Models\Aduan::create([
+            'nomor_tiket' => $nomorTiket,
+            'tipe_pengadu' => $request->submitter_type,
+            'sesi_id' => $sesi_id,
+            'kontak_terenkripsi' => $request->contact,
+            'kategori' => $request->category,
+            'lokasi' => $request->location,
+            'deskripsi' => $request->description,
+            'urgensi' => $urgencyInput,
+            'status' => 'baru',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'nomor_tiket' => $aduan->nomor_tiket
+        ]);
+    }
+
+    /**
+     * Endpoint internal untuk mengecek status aduan by nomor tiket
+     */
+    public function internalCheckComplaintStatus(Request $request)
+    {
+        $request->validate([
+            'nomor_tiket' => 'required|string',
+        ]);
+
+        $aduan = \App\Models\Aduan::where('nomor_tiket', $request->nomor_tiket)->first();
+
+        if (!$aduan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aduan tidak ditemukan.'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'aduan' => [
+                'nomor_tiket' => $aduan->nomor_tiket,
+                'kategori' => $aduan->kategori,
+                'status' => $aduan->status->value,
+                'tanggapan' => $aduan->tanggapan,
+                'urgensi' => $aduan->urgensi->value,
+                'created_at' => $aduan->created_at->format('Y-m-d H:i:s'),
+            ]
+        ]);
+    }
+
+    /**
+     * Endpoint internal untuk mencari aduan by kontak
+     */
+    public function internalFindComplaintsByContact(Request $request)
+    {
+        $request->validate([
+            'kontak' => 'required|string',
+        ]);
+
+        $kontak = $request->kontak;
+        $aduans = \App\Models\Aduan::all()->filter(function ($a) use ($kontak) {
+            return $a->kontak_terenkripsi === $kontak;
+        });
+
+        $formatted = $aduans->map(function ($a) {
+            return [
+                'nomor_tiket' => $a->nomor_tiket,
+                'kategori' => $a->kategori,
+                'status' => $a->status->value,
+                'created_at' => $a->created_at->format('Y-m-d H:i:s'),
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'aduans' => $formatted
+        ]);
+    }
 }

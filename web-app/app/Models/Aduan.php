@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AduanStatus;
-use App\Enums\Urgensi;
+use App\Enums\UrgensiAduan;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +17,7 @@ class Aduan extends Model
     {
         return [
             'kontak_terenkripsi'=>'encrypted',
-            'urgensi'=>Urgensi::class,
+            'urgensi'=>UrgensiAduan::class,
             'status'=>AduanStatus::class,
             'ditindaklanjuti_pada'=>'datetime',
             'selesai_pada'=>'datetime',

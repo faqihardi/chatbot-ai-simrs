@@ -5,9 +5,10 @@ from typing import List, Dict, Optional
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import tool
+from langchain_core.runnables.config import RunnableConfig
 from langgraph.prebuilt import create_react_agent
 from tools.rag import search_knowledge_base
-from tools.action import get_available_doctors, book_appointment, check_my_appointments
+from tools.action import get_available_doctors, book_appointment, check_my_appointments, submit_complaint, check_complaint_status, find_complaints_by_contact
 
 load_dotenv()
 
@@ -62,11 +63,50 @@ def check_my_appointments_tool(contact: str) -> str:
     """
     return check_my_appointments(contact)
 
+@tool
+def submit_complaint_tool(submitter_type: str, category: str, description: str, location: Optional[str] = "", urgency: Optional[str] = "Sedang", contact: Optional[str] = "", config: RunnableConfig = None) -> str:
+    """
+    Gunakan fungsi ini jika pengguna ingin mensubmit aduan atau keluhan terkait pelayanan rumah sakit.
+    Input:
+    - submitter_type: 'staf' jika pengadu adalah staf rumah sakit, atau 'publik' jika masyarakat/pasien.
+    - category: Kategori keluhan (contoh: Pelayanan, Fasilitas, Kebersihan, Medis).
+    - description: Deskripsi lengkap mengenai aduan.
+    - location: (Opsional) Lokasi kejadian aduan.
+    - urgency: (Opsional) 'Rendah', 'Sedang', atau 'Tinggi'.
+    - contact: (Opsional) Nomor HP/kontak pengadu. Pastikan meminta izin (consent) sebelum meminta kontak.
+    Mengembalikan Nomor Tiket aduan jika berhasil.
+    """
+    session_id = config.get("configurable", {}).get("thread_id", "") if config else ""
+    return submit_complaint(submitter_type, category, description, location, urgency, contact, session_id)
+
+@tool
+def check_complaint_status_tool(nomor_tiket: str) -> str:
+    """
+    Gunakan fungsi ini untuk mengecek status aduan berdasarkan nomor tiket.
+    Input:
+    - nomor_tiket: Nomor tiket aduan.
+    Mengembalikan data status aduan.
+    """
+    return check_complaint_status(nomor_tiket)
+
+@tool
+def find_complaints_by_contact_tool(contact: str) -> str:
+    """
+    Gunakan fungsi ini untuk mencari daftar aduan milik pengguna berdasarkan kontak.
+    Input:
+    - contact: Nomor HP/kontak pengadu.
+    Mengembalikan daftar aduan.
+    """
+    return find_complaints_by_contact(contact)
+
 tools = [
     search_knowledge_base_tool, 
     get_available_doctors_tool,
     book_appointment_tool,
-    check_my_appointments_tool
+    check_my_appointments_tool,
+    submit_complaint_tool,
+    check_complaint_status_tool,
+    find_complaints_by_contact_tool
 ]
 
 
@@ -79,6 +119,11 @@ Tugas Anda adalah menjawab pertanyaan pasien menggunakan informasi dari basis pe
 - JIKA tool `book_appointment_tool` mengembalikan sukses, sampaikan detail konfirmasi pendaftaran secara tertulis (nomor booking, nomor antrean, nama dokter, hari, tanggal, jam), DAN sertakan JSON data mentah secara utuh di akhir jawaban Anda, diapit oleh tag <BookingSuccess>JSON_DI_SINI</BookingSuccess> agar sistem dapat merender kartu konfirmasi sukses.
 - SELALU panggil tool `check_my_appointments_tool` jika pengguna ingin mencari/melihat daftar janji temu miliknya menggunakan nomor HP/kontak.
 - JIKA tool `check_my_appointments_tool` mengembalikan daftar janji temu, sampaikan daftarnya secara tertulis, DAN sertakan JSON data mentah secara utuh di akhir jawaban Anda, diapit oleh tag <AppointmentsList>JSON_DI_SINI</AppointmentsList> agar sistem dapat merender daftar tersebut secara interaktif.
+- Jika pengguna ingin membuat aduan, minta informasi wajib (kategori dan deskripsi detail). Anda boleh menanyakan kontak (opsional), dengan pesan mikro: "(Anda bisa melewati pertanyaan ini jika ingin anonim)".
+- JIKA tool `submit_complaint_tool` mengembalikan pesan sukses, sampaikan Nomor Tiket aduan secara tertulis.
+- SELALU panggil tool `check_complaint_status_tool` jika pengguna ingin mengecek aduan menggunakan Nomor Tiket.
+- SELALU panggil tool `find_complaints_by_contact_tool` jika pengguna ingin mencari riwayat aduan menggunakan kontak.
+- JIKA status aduan atau daftar aduan ditemukan, sampaikan secara ringkas dan ramah, DAN sertakan JSON data mentah secara utuh di akhir jawaban Anda, diapit tag <ComplaintStatus>JSON</ComplaintStatus> atau <ComplaintsList>JSON</ComplaintsList> agar sistem dapat merendernya secara interaktif.
 - Jika tool mengembalikan "informasi tidak ditemukan", JANGAN MENGARANG JAWABAN (HALUSINASI). Sampaikan dengan sopan bahwa Anda tidak memiliki informasi tersebut atau arahkan untuk menghubungi CS manusia.
 - JANGAN PERNAH menjawab pertanyaan medis, diagnostik, atau memberikan resep.
 - Berikan jawaban yang ramah, profesional, dan ringkas. Jangan membuat paragraf yang terlalu panjang.
