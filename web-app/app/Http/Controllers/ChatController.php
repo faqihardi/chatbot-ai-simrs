@@ -290,6 +290,11 @@ class ChatController extends Controller
      */
     public function internalSubmitComplaint(Request $request)
     {
+        // LLM mungkin mengirim "Staf" atau "Publik" dengan huruf besar
+        $request->merge([
+            'submitter_type' => strtolower($request->submitter_type ?? '')
+        ]);
+
         $request->validate([
             'submitter_type' => 'required|in:staf,publik',
             'category' => 'required|string',

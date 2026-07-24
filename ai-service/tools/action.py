@@ -194,6 +194,10 @@ def submit_complaint(submitter_type: str, category: str, description: str, locat
         
         response = requests.post(endpoint, json=payload, headers=headers, timeout=10)
         
+        # LOG FOR DEBUGGING
+        with open("debug_complaint.log", "w") as f:
+            f.write(f"Payload: {json.dumps(payload)}\nStatus: {response.status_code}\nResponse: {response.text}\n")
+        
         if response.status_code == 200:
             res_data = response.json()
             return f"Aduan berhasil dikirim. Nomor Tiket Anda adalah {res_data.get('nomor_tiket')}."
@@ -201,8 +205,10 @@ def submit_complaint(submitter_type: str, category: str, description: str, locat
             return f"Gagal mengirim aduan: {response.text}"
             
     except Exception as e:
+        with open("debug_complaint.log", "w") as f:
+            f.write(f"Exception: {str(e)}\n")
         print(f"Error pada submit_complaint: {e}")
-        return "Gagal terhubung dengan layanan pengaduan saat ini."
+        return f"Gagal terhubung dengan layanan pengaduan saat ini. Error: {str(e)}"
 
 def check_complaint_status(nomor_tiket: str) -> str:
     """
