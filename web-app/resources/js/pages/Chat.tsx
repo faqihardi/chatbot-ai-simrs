@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { usePage } from '@inertiajs/react';
 import { 
     Box, 
     Paper, 
@@ -15,6 +16,8 @@ import {
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
+import MicIcon from '@mui/icons-material/Mic';
+import StopCircleIcon from '@mui/icons-material/StopCircle';
 import ThemeToggleButton from '../Components/ThemeToggleButton';
 import JadwalCard from '../Components/JadwalCard';
 
@@ -24,11 +27,14 @@ interface Message {
 }
 
 export default function Chat() {
+    const { auth } = usePage().props as any;
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
     const [token, setToken] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const recognitionRef = useRef<any>(null);
 
     const renderMessageContent = (content: string) => {
         // Regex pattern matches
@@ -304,10 +310,39 @@ export default function Chat() {
             }
             setToken(savedToken);
             
-            // Welcome message
-            setMessages([
+            // Default Welcome message
+            let initialMessages: Message[] = [
                 { role: 'assistant', content: 'Halo! Saya asisten virtual RS Techno Medic. Ada yang bisa saya bantu terkait jadwal, pendaftaran, atau layanan kami?' }
-            ]);
+            ];
+
+            // Fetch session data
+            if (savedToken) {
+                try {
+                    const dataRes = await axios.get(`/api/chat/session/data?token_sesi=${savedToken}`);
+                    if (dataRes.data && dataRes.data.success) {
+                        const { bookings, aduans } = dataRes.data;
+                        let contextMsg = "";
+                        
+                        if (bookings.length > 0) {
+                            contextMsg += `\n\n<AppointmentsList>${JSON.stringify({bookings})}</AppointmentsList>`;
+                        }
+                        if (aduans.length > 0) {
+                            contextMsg += `\n\n<ComplaintsList>${JSON.stringify({aduans})}</ComplaintsList>`;
+                        }
+                        
+                        if (contextMsg !== "") {
+                            initialMessages.push({
+                                role: 'assistant',
+                                content: `Selamat datang kembali! Berikut adalah data aktif Anda saat ini:${contextMsg}`
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.error("Failed to load session data:", err);
+                }
+            }
+
+            setMessages(initialMessages);
         };
 
         initSession();
@@ -334,7 +369,8 @@ export default function Chat() {
             const response = await axios.post('/api/chat/message', {
                 token_sesi: token,
                 message: userMessage.content,
-                history: history
+                history: history,
+                user_role: auth?.user?.role || 'publik'
             });
 
             const botMessage: Message = { role: 'assistant', content: response.data.reply };
@@ -351,6 +387,48 @@ export default function Chat() {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSend();
+        }
+    };
+
+    const toggleRecording = () => {
+        if (isRecording) {
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+            }
+            setIsRecording(false);
+        } else {
+            // Check for browser support
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Maaf, browser Anda tidak mendukung fitur input suara.");
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'id-ID';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                setIsRecording(true);
+            };
+
+            recognition.onresult = (event: any) => {
+                const transcript = event.results[0][0].transcript;
+                setInput((prev) => (prev ? prev + ' ' : '') + transcript);
+            };
+
+            recognition.onerror = (event: any) => {
+                console.error("Speech recognition error:", event.error);
+                setIsRecording(false);
+            };
+
+            recognition.onend = () => {
+                setIsRecording(false);
+            };
+
+            recognitionRef.current = recognition;
+            recognition.start();
         }
     };
 
@@ -460,7 +538,7 @@ export default function Chat() {
                         <TextField
                             fullWidth
                             variant="outlined"
-                            placeholder="Ketik pertanyaan Anda..."
+                            placeholder={isRecording ? "Sedang mendengarkan..." : "Ketik pertanyaan Anda..."}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyPress={handleKeyPress}
@@ -470,13 +548,28 @@ export default function Chat() {
                             maxRows={3}
                         />
                         <IconButton 
+                            onClick={toggleRecording} 
+                            disabled={loading || !token}
+                            sx={{ 
+                                bgcolor: isRecording ? 'error.main' : 'grey.200',
+                                color: isRecording ? 'error.contrastText' : 'text.primary',
+                                '&:hover': { bgcolor: isRecording ? 'error.dark' : 'grey.300' },
+                                width: 40,
+                                height: 40
+                            }}
+                        >
+                            {isRecording ? <StopCircleIcon /> : <MicIcon />}
+                        </IconButton>
+                        <IconButton 
                             color="primary" 
                             onClick={handleSend} 
                             disabled={loading || !input.trim() || !token}
                             sx={{ 
                                 bgcolor: 'primary.main', 
                                 color: 'primary.contrastText',
-                                '&:hover': { bgcolor: 'primary.dark' }
+                                '&:hover': { bgcolor: 'primary.dark' },
+                                width: 40,
+                                height: 40
                             }}
                         >
                             <SendIcon />

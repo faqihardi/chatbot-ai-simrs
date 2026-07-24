@@ -136,12 +136,22 @@ class ChatRequest(BaseModel):
     message: str
     history: Optional[List[Dict[str, str]]] = [] # Format: [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]
     session_id: str = "default_session"
+    user_role: str = "publik"
 
 @app.post("/chat")
 def chat_endpoint(req: ChatRequest):
     # Menyusun riwayat percakapan untuk agent
     formatted_messages = []
     
+    # Konteks Role
+    role_instruction = f"PENTING: Anda sedang berinteraksi dengan pengguna berstatus '{req.user_role}'."
+    if req.user_role == "staf":
+        role_instruction += " Saat menggunakan submit_complaint_tool, set submitter_type='staf'. Anda TIDAK PERLU menanyakan kontak staf."
+    else:
+        role_instruction += " Saat menggunakan submit_complaint_tool, set submitter_type='publik'. Anda bisa menanyakan kontak opsional."
+
+    formatted_messages.append(("system", role_instruction))
+
     # 1. Masukkan riwayat dari Laravel
     for msg in req.history:
         role = msg.get("role")

@@ -7,6 +7,7 @@ use Illuminate\Support\Str;
 use App\Models\SesiPercakapan;
 use App\Models\Booking;
 use App\Models\JadwalSlot;
+use App\Models\Aduan;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -41,6 +42,7 @@ class ChatController extends Controller
             'token_sesi' => 'required|string',
             'message' => 'required|string',
             'history' => 'array',
+            'user_role' => 'nullable|string',
         ]);
 
         // Verifikasi apakah sesi valid
@@ -55,6 +57,7 @@ class ChatController extends Controller
                 'message' => $request->message,
                 'history' => $request->history ?? [],
                 'session_id' => $request->token_sesi,
+                'user_role' => $request->user_role ?? 'publik',
             ]);
 
             if ($response->successful()) {
@@ -388,6 +391,60 @@ class ChatController extends Controller
         return response()->json([
             'success' => true,
             'aduans' => $formatted
+        ]);
+    }
+
+    /**
+     * Endpoint untuk mengambil data sesi, booking, dan aduan aktif saat halaman direload
+     */
+    public function getSessionData(Request $request)
+    {
+        $request->validate([
+            'token_sesi' => 'required|string',
+        ]);
+
+        $sesi = SesiPercakapan::where('token_sesi', $request->token_sesi)->first();
+
+        if (!$sesi) {
+            return response()->json(['success' => false, 'message' => 'Sesi tidak ditemukan'], 404);
+        }
+
+        // Ambil booking aktif yang terhubung ke sesi ini
+        $bookings = Booking::with(['slot.dokter.poli'])
+            ->where('sesi_id', $sesi->id)
+            ->whereNotIn('status', ['selesai', 'dibatalkan', 'expired'])
+            ->get();
+
+        $formattedBookings = $bookings->map(function ($b) {
+            return [
+                'nomor_booking' => $b->nomor_booking,
+                'nomor_antrean' => $b->nomor_antrean,
+                'dokter_nama' => $b->slot->dokter->nama,
+                'poli_nama' => $b->slot->dokter->poli->nama,
+                'tanggal' => $b->slot->tanggal,
+                'jam' => substr($b->slot->jam_mulai, 0, 5) . ' - ' . substr($b->slot->jam_selesai, 0, 5),
+                'status' => $b->status->value,
+            ];
+        })->values();
+
+        // Ambil aduan aktif yang terhubung ke sesi ini
+        $aduans = Aduan::where('sesi_id', $sesi->id)
+            ->whereNotIn('status', ['selesai', 'ditolak'])
+            ->get();
+
+        $formattedAduans = $aduans->map(function ($a) {
+            return [
+                'nomor_tiket' => $a->nomor_tiket,
+                'kategori' => $a->kategori,
+                'status' => $a->status->value,
+                'created_at' => $a->created_at->format('Y-m-d H:i:s'),
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'bookings' => $formattedBookings,
+            'aduans' => $formattedAduans
         ]);
     }
 }
