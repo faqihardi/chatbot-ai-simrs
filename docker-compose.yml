@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  web-app:
+    build: 
+      context: ./web-app
+    ports:
+      - "8000:8080"
+    env_file:
+      - ./web-app/.env
+    environment:
+      - PORT=8080
+      - DB_HOST=host.docker.internal
+      - SESSION_DRIVER=database
+      - CACHE_STORE=database
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    
+  ai-service:
+    build:
+      context: ./ai-service
+    ports:
+      - "8001:8001"
+    env_file:
+      - ./ai-service/.env
+    environment:
+      - LARAVEL_URL=http://web-app:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

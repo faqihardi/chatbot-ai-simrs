@@ -1,0 +1,61 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push Laravel Docker image
+        run: |
+          gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/web-app ./web-app
+
+      - name: Deploy Laravel to Cloud Run
+        run: |
+          gcloud run deploy web-app \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/web-app \
+            --region us-west1 \
+            --allow-unauthenticated \
+            --max-instances 1 \
+            --vpc-connector ${{ secrets.VPC_CONNECTOR_NAME }} \
+            --set-env-vars="DB_CONNECTION=pgsql,DB_HOST=${{ secrets.DB_HOST }},DB_PORT=5432,DB_DATABASE=${{ secrets.DB_DATABASE }},DB_USERNAME=${{ secrets.DB_USERNAME }},DB_PASSWORD=${{ secrets.DB_PASSWORD }},APP_KEY=${{ secrets.APP_KEY }},APP_ENV=production,APP_DEBUG=false,SESSION_DRIVER=database,CACHE_STORE=database"
+
+  deploy-ai:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push FastAPI Docker image
+        run: |
+          gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/ai-service ./ai-service
+
+      - name: Deploy FastAPI to Cloud Run
+        run: |
+          gcloud run deploy ai-service \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/ai-service \
+            --region us-west1 \
+            --allow-unauthenticated \
+            --max-instances 1 \
+            --vpc-connector ${{ secrets.VPC_CONNECTOR_NAME }} \
+            --set-env-vars="GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},DATABASE_URL=${{ secrets.DATABASE_URL_PYTHON }}"
