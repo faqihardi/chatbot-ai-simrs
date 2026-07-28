@@ -3,14 +3,50 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\StafController;
+use App\Http\Controllers\AdminCsController;
+use App\Http\Controllers\SuperadminController;
 
-Route::inertia('/', 'welcome')->name('home');
+use App\Http\Controllers\Admin\DokumenController as AdminDokumenController;
+use App\Http\Controllers\Admin\AduanController as AdminAduanController;
+use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\AduanController;
 use App\Http\Controllers\Api\JadwalController;
 
-// Chat Routes
+Route::inertia('/', 'welcome')->name('home');
+
+// Auth Routes
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Staf Routes
+Route::middleware(['auth', 'role:staf'])->group(function () {
+    Route::get('/staf/chat', [StafController::class, 'chat'])->name('staf.chat');
+    Route::get('/staf/riwayat-aduan', [StafController::class, 'riwayatAduan'])->name('staf.riwayat_aduan');
+});
+
+// Admin CS Routes
+Route::middleware(['auth', 'role:admin_cs'])->group(function () {
+    Route::get('/admin', [AdminCsController::class, 'dashboard'])->name('admin.dashboard');
+    Route::resource('/admin/dokumen', AdminDokumenController::class);
+    Route::resource('/admin/aduan', AdminAduanController::class)->only(['index', 'update']);
+    Route::resource('/admin/booking', AdminBookingController::class)->only(['index', 'update']);
+    Route::get('/admin/log-gagal', function() { return inertia('AdminCS/LogGagal'); })->name('admin.log_gagal');
+});
+
+// Superadmin Routes
+Route::middleware(['auth', 'role:superadmin'])->group(function () {
+    Route::get('/superadmin', [SuperadminController::class, 'dashboard'])->name('superadmin.dashboard');
+    // We will add resource controllers for users, poli, dokter, jadwal, monitoring later
+    Route::get('/superadmin/users', function() { return inertia('Superadmin/Users'); })->name('superadmin.users');
+    Route::get('/superadmin/jadwal', function() { return inertia('Superadmin/Jadwal'); })->name('superadmin.jadwal');
+});
+
+// Chat Routes (Public)
 Route::get('/chat', [ChatController::class, 'index'])->name('chat');
 Route::post('/api/chat/session', [ChatController::class, 'createSession']);
 Route::get('/api/chat/session/data', [ChatController::class, 'getSessionData']);
