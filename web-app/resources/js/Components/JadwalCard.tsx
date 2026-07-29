@@ -1,29 +1,10 @@
 import React, { useState } from 'react';
-import { 
-    Card, 
-    CardContent, 
-    Typography, 
-    Button, 
-    Box, 
-    Dialog, 
-    DialogTitle, 
-    DialogContent, 
-    DialogActions, 
-    TextField, 
-    FormControl, 
-    FormLabel, 
-    RadioGroup, 
-    FormControlLabel, 
-    Radio, 
-    Alert,
-    CircularProgress,
-    Paper,
-    Grid
-} from '@mui/material';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import axios from 'axios';
+import { CalendarDays, Clock, Stethoscope, Loader2, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface Slot {
     slot_id: number;
@@ -49,11 +30,10 @@ interface JadwalCardProps {
 export default function JadwalCard({ data, tokenSesi, onBookingSuccess }: JadwalCardProps) {
     const [open, setOpen] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
-    const [step, setStep] = useState(1); // 1: Input details, 2: Confirm draft
+    const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Form states
     const [namaPasien, setNamaPasien] = useState('');
     const [kontak, setKontak] = useState('');
     const [jenisPembayaran, setJenisPembayaran] = useState('umum');
@@ -118,7 +98,6 @@ export default function JadwalCard({ data, tokenSesi, onBookingSuccess }: Jadwal
 
             if (response.data.success) {
                 setOpen(false);
-                // Call parent callback to render the success state in chat
                 onBookingSuccess({
                     nomor_booking: response.data.nomor_booking,
                     nomor_antrean: response.data.nomor_antrean,
@@ -139,164 +118,150 @@ export default function JadwalCard({ data, tokenSesi, onBookingSuccess }: Jadwal
     };
 
     return (
-        <Box sx={{ width: '100%', my: 1 }}>
-            <Typography variant="subtitle2" color="primary" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <MedicalServicesIcon fontSize="small" /> Jadwal Dokter Tersedia - Poli {data.poli}
-            </Typography>
+        <div className="w-full my-2 relative">
+            <h3 className="flex items-center gap-2 text-primary font-bold mb-2">
+                <Stethoscope className="h-4 w-4" /> Jadwal Dokter Tersedia - Poli {data.poli}
+            </h3>
             
-            <Grid container spacing={2}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {data.slots.map((slot) => (
-                    <Grid item xs={12} sm={6} key={slot.slot_id}>
-                        <Card variant="outlined" sx={{ 
-                            borderRadius: 2, 
-                            boxShadow: 'none', 
-                            '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
-                            transition: 'all 0.2s'
-                        }}>
-                            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                                <Typography variant="subtitle1" fontWeight="bold" color="text.primary">
-                                    {slot.dokter_nama}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                                    {slot.spesialisasi}
-                                </Typography>
-                                
-                                <Box sx={{ display: 'flex', gap: 2, my: 1 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                        <CalendarMonthIcon fontSize="inherit" color="action" />
-                                        <Typography variant="caption">{slot.tanggal}</Typography>
-                                    </Box>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                        <AccessTimeIcon fontSize="inherit" color="action" />
-                                        <Typography variant="caption">
-                                            {slot.jam_mulai.substring(0, 5)} - {slot.jam_selesai.substring(0, 5)}
-                                        </Typography>
-                                    </Box>
-                                </Box>
-
-                                <Button 
-                                    size="small" 
-                                    variant="contained" 
-                                    fullWidth 
-                                    color="primary" 
-                                    onClick={() => handleOpen(slot)}
-                                    sx={{ mt: 1, borderRadius: 1.5 }}
-                                >
-                                    Pilih Slot
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                ))}
-            </Grid>
-
-            {/* Dialog Form Booking */}
-            <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
-                <DialogTitle sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', fontWeight: 'bold' }}>
-                    {step === 1 ? 'Formulir Janji Temu' : 'Konfirmasi Janji Temu'}
-                </DialogTitle>
-                
-                {step === 1 ? (
-                    <form onSubmit={handleSubmitDraft}>
-                        <DialogContent dividers>
-                            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-                            <Typography variant="subtitle2" color="primary" gutterBottom>
-                                Dokter: {selectedSlot?.dokter_nama} ({selectedSlot?.spesialisasi})
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                                Tanggal & Jam: {selectedSlot?.tanggal} @ {selectedSlot?.jam_mulai.substring(0, 5)}
-                            </Typography>
+                    <Card key={slot.slot_id} className="hover:border-primary transition-all duration-200 shadow-none bg-background">
+                        <CardContent className="p-4 flex flex-col gap-1">
+                            <span className="font-bold text-foreground">{slot.dokter_nama}</span>
+                            <span className="text-xs text-muted-foreground">{slot.spesialisasi}</span>
                             
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-                                <TextField
-                                    label="Nama Pasien"
-                                    required
-                                    fullWidth
-                                    value={namaPasien}
-                                    onChange={(e) => setNamaPasien(e.target.value)}
-                                    size="small"
-                                />
-                                <TextField
-                                    label="Nomor Kontak (WhatsApp)"
-                                    required
-                                    fullWidth
-                                    value={kontak}
-                                    onChange={(e) => setKontak(e.target.value)}
-                                    size="small"
-                                    helperText="Gunakan format internasional atau lokal (contoh: 0812xxxx)"
-                                />
-                                
-                                <FormControl component="fieldset">
-                                    <FormLabel component="legend">Metode Pembayaran</FormLabel>
-                                    <RadioGroup 
-                                        row 
-                                        value={jenisPembayaran} 
-                                        onChange={(e) => setJenisPembayaran(e.target.value)}
-                                    >
-                                        <FormControlLabel value="umum" control={<Radio size="small" />} label="Umum" />
-                                        <FormControlLabel value="bpjs" control={<Radio size="small" />} label="BPJS" />
-                                        <FormControlLabel value="asuransi" control={<Radio size="small" />} label="Asuransi" />
-                                    </RadioGroup>
-                                </FormControl>
+                            <div className="flex gap-4 my-2 text-xs">
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                    <CalendarDays className="h-3 w-3" />
+                                    <span>{slot.tanggal}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                    <Clock className="h-3 w-3" />
+                                    <span>{slot.jam_mulai.substring(0, 5)} - {slot.jam_selesai.substring(0, 5)}</span>
+                                </div>
+                            </div>
 
-                                <TextField
-                                    label="Keluhan Singkat (Opsional)"
-                                    fullWidth
-                                    multiline
-                                    rows={2}
-                                    value={keluhanSingkat}
-                                    onChange={(e) => setKeluhanSingkat(e.target.value)}
-                                    size="small"
-                                />
-                            </Box>
-                        </DialogContent>
-                        <DialogActions>
-                            <Button onClick={handleClose} disabled={loading}>Batal</Button>
-                            <Button type="submit" variant="contained" disabled={loading}>
-                                {loading ? <CircularProgress size={24} /> : 'Lanjut'}
-                            </Button>
-                        </DialogActions>
-                    </form>
-                ) : (
-                    <DialogContent dividers>
-                        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-                        <Typography variant="body1" align="center" gutterBottom>
-                            Anda akan mendaftar ke slot berikut:
-                        </Typography>
-                        
-                        <Paper variant="outlined" sx={{ p: 2, my: 2, bgcolor: 'background.default' }}>
-                            <Typography variant="subtitle2" fontWeight="bold">Dokter & Poli:</Typography>
-                            <Typography variant="body2" gutterBottom>{selectedSlot?.dokter_nama} ({data.poli})</Typography>
-                            
-                            <Typography variant="subtitle2" fontWeight="bold">Jadwal:</Typography>
-                            <Typography variant="body2" gutterBottom>{selectedSlot?.tanggal} ({selectedSlot?.jam_mulai.substring(0,5)} - {selectedSlot?.jam_selesai.substring(0,5)})</Typography>
-                            
-                            <Typography variant="subtitle2" fontWeight="bold">Nama Pasien:</Typography>
-                            <Typography variant="body2" gutterBottom>{namaPasien}</Typography>
-
-                            <Typography variant="subtitle2" fontWeight="bold">Jenis Pembayaran:</Typography>
-                            <Typography variant="body2" sx={{ textTransform: 'uppercase' }}>{jenisPembayaran}</Typography>
-                        </Paper>
-
-                        <Alert severity="warning" sx={{ mt: 1 }}>
-                            Slot ini hanya di-draft selama 15 menit. Silakan konfirmasi untuk mengunci pendaftaran.
-                        </Alert>
-
-                        <Box sx={{ mt: 2, display: 'flex', justifyItems: 'center', justifyContent: 'center' }}>
                             <Button 
-                                variant="contained" 
-                                color="success" 
-                                onClick={handleConfirmBooking} 
-                                disabled={loading}
-                                fullWidth
-                                size="large"
+                                size="sm" 
+                                className="w-full mt-2" 
+                                onClick={() => handleOpen(slot)}
                             >
-                                {loading ? <CircularProgress size={24} color="inherit" /> : 'Konfirmasi Pendaftaran'}
+                                Pilih Slot
                             </Button>
-                        </Box>
-                    </DialogContent>
-                )}
-            </Dialog>
-        </Box>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+
+            {open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <Card className="w-full max-w-md shadow-lg overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="bg-primary text-primary-foreground p-4 flex justify-between items-center shrink-0">
+                            <h2 className="font-bold">
+                                {step === 1 ? 'Formulir Janji Temu' : 'Konfirmasi Janji Temu'}
+                            </h2>
+                            <Button variant="ghost" size="icon" onClick={handleClose} disabled={loading} className="hover:bg-primary-foreground/20 rounded-full h-8 w-8">
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        
+                        <div className="p-4 overflow-y-auto">
+                            {error && (
+                                <div className="mb-4 p-3 bg-destructive/15 text-destructive rounded-md text-sm border border-destructive/20">
+                                    {error}
+                                </div>
+                            )}
+
+                            {step === 1 ? (
+                                <form onSubmit={handleSubmitDraft} className="flex flex-col gap-4">
+                                    <div className="bg-muted/50 p-3 rounded-md text-sm">
+                                        <div className="font-bold text-primary">Dokter: {selectedSlot?.dokter_nama}</div>
+                                        <div className="text-muted-foreground mt-1">Tanggal & Jam: {selectedSlot?.tanggal} @ {selectedSlot?.jam_mulai.substring(0, 5)}</div>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        <Label htmlFor="nama">Nama Pasien</Label>
+                                        <Input id="nama" required value={namaPasien} onChange={(e) => setNamaPasien(e.target.value)} />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="kontak">Nomor Kontak (WhatsApp)</Label>
+                                        <Input id="kontak" required value={kontak} onChange={(e) => setKontak(e.target.value)} placeholder="0812xxxx" />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Metode Pembayaran</Label>
+                                        <div className="flex gap-4 items-center">
+                                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                                <input type="radio" name="pay" value="umum" checked={jenisPembayaran === 'umum'} onChange={(e) => setJenisPembayaran(e.target.value)} className="accent-primary" /> Umum
+                                            </label>
+                                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                                <input type="radio" name="pay" value="bpjs" checked={jenisPembayaran === 'bpjs'} onChange={(e) => setJenisPembayaran(e.target.value)} className="accent-primary" /> BPJS
+                                            </label>
+                                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                                <input type="radio" name="pay" value="asuransi" checked={jenisPembayaran === 'asuransi'} onChange={(e) => setJenisPembayaran(e.target.value)} className="accent-primary" /> Asuransi
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="keluhan">Keluhan Singkat (Opsional)</Label>
+                                        <textarea 
+                                            id="keluhan" 
+                                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                            value={keluhanSingkat} 
+                                            onChange={(e) => setKeluhanSingkat(e.target.value)} 
+                                        />
+                                    </div>
+
+                                    <div className="flex justify-end gap-2 mt-2">
+                                        <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>Batal</Button>
+                                        <Button type="submit" disabled={loading}>
+                                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Lanjut'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            ) : (
+                                <div className="flex flex-col gap-4 text-sm">
+                                    <p className="text-center text-muted-foreground">Anda akan mendaftar ke slot berikut:</p>
+                                    
+                                    <div className="border rounded-md p-4 space-y-3 bg-muted/20">
+                                        <div>
+                                            <span className="font-bold block text-xs uppercase text-muted-foreground">Dokter & Poli</span>
+                                            <span>{selectedSlot?.dokter_nama} ({data.poli})</span>
+                                        </div>
+                                        <div>
+                                            <span className="font-bold block text-xs uppercase text-muted-foreground">Jadwal</span>
+                                            <span>{selectedSlot?.tanggal} ({selectedSlot?.jam_mulai.substring(0,5)} - {selectedSlot?.jam_selesai.substring(0,5)})</span>
+                                        </div>
+                                        <div>
+                                            <span className="font-bold block text-xs uppercase text-muted-foreground">Nama Pasien</span>
+                                            <span>{namaPasien}</span>
+                                        </div>
+                                        <div>
+                                            <span className="font-bold block text-xs uppercase text-muted-foreground">Pembayaran</span>
+                                            <span className="uppercase">{jenisPembayaran}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-3 bg-yellow-50 text-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-400 rounded-md text-xs border border-yellow-200 dark:border-yellow-900">
+                                        Slot ini hanya di-draft selama 15 menit. Silakan konfirmasi untuk mengunci pendaftaran.
+                                    </div>
+
+                                    <Button 
+                                        className="w-full mt-2" 
+                                        onClick={handleConfirmBooking} 
+                                        disabled={loading}
+                                        variant="default"
+                                    >
+                                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Konfirmasi Pendaftaran'}
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </Card>
+                </div>
+            )}
+        </div>
     );
 }

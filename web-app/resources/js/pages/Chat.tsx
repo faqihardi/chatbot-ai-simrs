@@ -1,23 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { usePage } from '@inertiajs/react';
-import { 
-    Box, 
-    Paper, 
-    Typography, 
-    TextField, 
-    IconButton, 
-    List, 
-    ListItem, 
-    ListItemText, 
-    CircularProgress, 
-    Divider 
-} from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
-import PersonIcon from '@mui/icons-material/Person';
-import MicIcon from '@mui/icons-material/Mic';
-import StopCircleIcon from '@mui/icons-material/StopCircle';
+import { Send, Bot, User, Mic, Square, Loader2, CalendarDays, Clock, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import ThemeToggleButton from '../Components/ThemeToggleButton';
 import JadwalCard from '../Components/JadwalCard';
 
@@ -26,7 +15,11 @@ interface Message {
     content: string;
 }
 
-export default function Chat() {
+interface ChatProps {
+    embedded?: boolean;
+}
+
+export default function Chat({ embedded = false }: ChatProps) {
     const { auth } = usePage().props as any;
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
@@ -37,7 +30,6 @@ export default function Chat() {
     const recognitionRef = useRef<any>(null);
 
     const renderMessageContent = (content: string) => {
-        // Regex pattern matches
         const jadwalRegex = /<JadwalData>([\s\S]*?)<\/JadwalData>/;
         const bookingSuccessRegex = /<BookingSuccess>([\s\S]*?)<\/BookingSuccess>/;
         const appointmentsRegex = /<AppointmentsList>([\s\S]*?)<\/AppointmentsList>/;
@@ -51,73 +43,46 @@ export default function Chat() {
         let complaintStatusData = null;
         let complaintsListData = null;
 
-        // 1. Check for schedules
         const jadwalMatch = content.match(jadwalRegex);
         if (jadwalMatch) {
             cleanText = cleanText.replace(jadwalRegex, '');
-            try {
-                scheduleData = JSON.parse(jadwalMatch[1].trim());
-            } catch (e) {
-                console.error("Failed to parse JadwalData JSON", e);
-            }
+            try { scheduleData = JSON.parse(jadwalMatch[1].trim()); } catch (e) { console.error(e); }
         }
 
-        // 2. Check for booking success
         const bookingMatch = content.match(bookingSuccessRegex);
         if (bookingMatch) {
             cleanText = cleanText.replace(bookingSuccessRegex, '');
-            try {
-                bookingSuccessData = JSON.parse(bookingMatch[1].trim());
-            } catch (e) {
-                console.error("Failed to parse BookingSuccess JSON", e);
-            }
+            try { bookingSuccessData = JSON.parse(bookingMatch[1].trim()); } catch (e) { console.error(e); }
         }
 
-        // 3. Check for appointments list
         const appointmentsMatch = content.match(appointmentsRegex);
         if (appointmentsMatch) {
             cleanText = cleanText.replace(appointmentsRegex, '');
-            try {
-                appointmentsListData = JSON.parse(appointmentsMatch[1].trim());
-            } catch (e) {
-                console.error("Failed to parse AppointmentsList JSON", e);
-            }
+            try { appointmentsListData = JSON.parse(appointmentsMatch[1].trim()); } catch (e) { console.error(e); }
         }
 
-        // 4. Check for complaint status
         const complaintStatusMatch = content.match(complaintStatusRegex);
         if (complaintStatusMatch) {
             cleanText = cleanText.replace(complaintStatusRegex, '');
-            try {
-                complaintStatusData = JSON.parse(complaintStatusMatch[1].trim());
-            } catch (e) {
-                console.error("Failed to parse ComplaintStatus JSON", e);
-            }
+            try { complaintStatusData = JSON.parse(complaintStatusMatch[1].trim()); } catch (e) { console.error(e); }
         }
 
-        // 5. Check for complaints list
         const complaintsListMatch = content.match(complaintsListRegex);
         if (complaintsListMatch) {
             cleanText = cleanText.replace(complaintsListRegex, '');
-            try {
-                complaintsListData = JSON.parse(complaintsListMatch[1].trim());
-            } catch (e) {
-                console.error("Failed to parse ComplaintsList JSON", e);
-            }
+            try { complaintsListData = JSON.parse(complaintsListMatch[1].trim()); } catch (e) { console.error(e); }
         }
 
         return (
-            <Box>
+            <div className="flex flex-col gap-2">
                 {cleanText.trim() && (
-                    <Typography variant="body1" sx={{ whiteSpace: 'pre-line', mb: (scheduleData || bookingSuccessData || appointmentsListData || complaintStatusData || complaintsListData) ? 1.5 : 0 }}>
-                        {cleanText}
-                    </Typography>
+                    <p className="whitespace-pre-line text-sm leading-relaxed">{cleanText}</p>
                 )}
-                
+
                 {scheduleData && token && (
-                    <JadwalCard 
-                        data={scheduleData} 
-                        tokenSesi={token} 
+                    <JadwalCard
+                        data={scheduleData}
+                        tokenSesi={token}
                         onBookingSuccess={(bookingResult) => {
                             setMessages((prev) => [
                                 ...prev,
@@ -131,169 +96,113 @@ export default function Chat() {
                 )}
 
                 {bookingSuccessData && (
-                    <Paper 
-                        variant="outlined" 
-                        sx={{ 
-                            p: 2, 
-                            borderLeft: 4, 
-                            borderColor: 'success.main',
-                            bgcolor: 'background.default',
-                            borderRadius: 1.5,
-                            mt: 1
-                        }}
-                    >
-                        <Typography variant="subtitle2" color="success.main" fontWeight="bold" gutterBottom>
-                            Konfirmasi Booking Sukses
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <Typography variant="caption" color="text.secondary">Nomor Booking:</Typography>
-                                <Typography variant="body2" fontWeight="bold">{bookingSuccessData.nomor_booking}</Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'primary.light', p: 1, borderRadius: 1, my: 1, color: 'primary.contrastText' }}>
-                                <Typography variant="body2" fontWeight="bold">Nomor Antrean:</Typography>
-                                <Typography variant="h5" fontWeight="black">{bookingSuccessData.nomor_antrean}</Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <Typography variant="caption" color="text.secondary">Dokter:</Typography>
-                                <Typography variant="body2">{bookingSuccessData.dokter_nama}</Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <Typography variant="caption" color="text.secondary">Poli:</Typography>
-                                <Typography variant="body2">{bookingSuccessData.poli_nama}</Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <Typography variant="caption" color="text.secondary">Jadwal:</Typography>
-                                <Typography variant="body2">{bookingSuccessData.tanggal} @ {bookingSuccessData.jam}</Typography>
-                            </Box>
-                        </Box>
-                    </Paper>
+                    <Card className="border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20 mt-2">
+                        <CardHeader className="pb-2 pt-4 px-4">
+                            <CardTitle className="text-green-700 dark:text-green-400 text-sm font-bold">
+                                Konfirmasi Booking Sukses
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-4 pb-4 text-sm space-y-1">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Nomor Booking:</span>
+                                <span className="font-bold">{bookingSuccessData.nomor_booking}</span>
+                            </div>
+                            <div className="flex justify-between items-center bg-green-100 dark:bg-green-900/40 p-2 rounded-md my-2 text-green-900 dark:text-green-100">
+                                <span className="font-bold">Nomor Antrean:</span>
+                                <span className="text-xl font-black">{bookingSuccessData.nomor_antrean}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Dokter:</span>
+                                <span>{bookingSuccessData.dokter_nama}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Poli:</span>
+                                <span>{bookingSuccessData.poli_nama}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Jadwal:</span>
+                                <span>{bookingSuccessData.tanggal} @ {bookingSuccessData.jam}</span>
+                            </div>
+                        </CardContent>
+                    </Card>
                 )}
 
                 {appointmentsListData && (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 1 }}>
-                        <Typography variant="subtitle2" color="primary" fontWeight="bold">
-                            Daftar Janji Temu Aktif Anda
-                        </Typography>
+                    <div className="flex flex-col gap-2 mt-2">
+                        <span className="text-sm font-bold text-primary">Daftar Janji Temu Aktif Anda</span>
                         {appointmentsListData.bookings.map((app: any, idx: number) => (
-                            <Paper 
-                                key={idx} 
-                                variant="outlined" 
-                                sx={{ 
-                                    p: 1.5, 
-                                    borderRadius: 1.5,
-                                    bgcolor: 'background.default',
-                                    borderLeft: 4,
-                                    borderColor: app.status === 'terjadwal' ? 'info.main' : 'text.disabled'
-                                }}
-                            >
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                                    <Typography variant="body2" fontWeight="bold" color="primary">{app.dokter_nama}</Typography>
-                                    <Typography 
-                                        variant="caption" 
-                                        sx={{ 
-                                            px: 1, 
-                                            py: 0.2, 
-                                            borderRadius: 1, 
-                                            bgcolor: app.status === 'terjadwal' ? 'info.light' : 'action.disabledBackground',
-                                            color: app.status === 'terjadwal' ? 'info.contrastText' : 'text.secondary',
-                                            textTransform: 'uppercase',
-                                            fontWeight: 'bold'
-                                        }}
-                                    >
-                                        {app.status}
-                                    </Typography>
-                                </Box>
-                                <Typography variant="caption" color="text.secondary" display="block">Poli: {app.poli_nama}</Typography>
-                                <Typography variant="caption" color="text.secondary" display="block">Jadwal: {app.tanggal} @ {app.jam}</Typography>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1, borderTop: 1, pt: 0.5, borderColor: 'divider' }}>
-                                    <Typography variant="caption" color="text.secondary">No. Booking: {app.nomor_booking}</Typography>
-                                    {app.nomor_antrean && (
-                                        <Typography variant="caption" fontWeight="bold">Antrean: {app.nomor_antrean}</Typography>
-                                    )}
-                                </Box>
-                            </Paper>
+                            <Card key={idx} className={`border-l-4 ${app.status === 'terjadwal' ? 'border-l-blue-500' : 'border-l-gray-400'}`}>
+                                <CardContent className="p-3 text-sm">
+                                    <div className="flex justify-between mb-1">
+                                        <span className="font-bold text-primary">{app.dokter_nama}</span>
+                                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase ${app.status === 'terjadwal' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-800'}`}>
+                                            {app.status}
+                                        </span>
+                                    </div>
+                                    <span className="block text-muted-foreground">Poli: {app.poli_nama}</span>
+                                    <span className="block text-muted-foreground">Jadwal: {app.tanggal} @ {app.jam}</span>
+                                    <Separator className="my-2" />
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">No. Booking: {app.nomor_booking}</span>
+                                        {app.nomor_antrean && <span className="font-bold">Antrean: {app.nomor_antrean}</span>}
+                                    </div>
+                                </CardContent>
+                            </Card>
                         ))}
-                    </Box>
+                    </div>
                 )}
 
                 {complaintStatusData && (
-                    <Paper 
-                        variant="outlined" 
-                        sx={{ 
-                            p: 2, 
-                            borderLeft: 4, 
-                            borderColor: complaintStatusData.aduan.status === 'selesai' ? 'success.main' : 'warning.main',
-                            bgcolor: 'background.default',
-                            borderRadius: 1.5,
-                            mt: 1
-                        }}
-                    >
-                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                            Status Tiket Aduan: <Typography component="span" fontWeight="bold" color="text.primary">{complaintStatusData.aduan.nomor_tiket}</Typography>
-                        </Typography>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="caption" color="text.secondary">Status:</Typography>
-                            <Typography variant="body2" fontWeight="bold" sx={{ textTransform: 'uppercase' }}>{complaintStatusData.aduan.status}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="caption" color="text.secondary">Kategori:</Typography>
-                            <Typography variant="body2">{complaintStatusData.aduan.kategori}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="caption" color="text.secondary">Urgensi:</Typography>
-                            <Typography variant="body2">{complaintStatusData.aduan.urgensi}</Typography>
-                        </Box>
-                        {complaintStatusData.aduan.tanggapan && (
-                            <Box sx={{ mt: 1.5, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
-                                <Typography variant="caption" fontWeight="bold" display="block">Tanggapan Petugas:</Typography>
-                                <Typography variant="body2">{complaintStatusData.aduan.tanggapan}</Typography>
-                            </Box>
-                        )}
-                    </Paper>
+                    <Card className={`border-l-4 mt-2 ${complaintStatusData.aduan.status === 'selesai' ? 'border-l-green-500' : 'border-l-yellow-500'}`}>
+                        <CardContent className="p-3 text-sm">
+                            <span className="block text-muted-foreground mb-2">
+                                Status Tiket Aduan: <span className="font-bold text-foreground">{complaintStatusData.aduan.nomor_tiket}</span>
+                            </span>
+                            <div className="flex justify-between mb-1">
+                                <span className="text-muted-foreground">Status:</span>
+                                <span className="font-bold uppercase">{complaintStatusData.aduan.status}</span>
+                            </div>
+                            <div className="flex justify-between mb-1">
+                                <span className="text-muted-foreground">Kategori:</span>
+                                <span>{complaintStatusData.aduan.kategori}</span>
+                            </div>
+                            <div className="flex justify-between mb-1">
+                                <span className="text-muted-foreground">Urgensi:</span>
+                                <span>{complaintStatusData.aduan.urgensi}</span>
+                            </div>
+                            {complaintStatusData.aduan.tanggapan && (
+                                <div className="mt-2 p-2 bg-muted rounded-md">
+                                    <span className="block font-bold mb-1">Tanggapan Petugas:</span>
+                                    <span>{complaintStatusData.aduan.tanggapan}</span>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 )}
 
                 {complaintsListData && (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 1 }}>
-                        <Typography variant="subtitle2" color="primary" fontWeight="bold">
-                            Daftar Riwayat Aduan Anda
-                        </Typography>
+                    <div className="flex flex-col gap-2 mt-2">
+                        <span className="text-sm font-bold text-primary">Daftar Riwayat Aduan Anda</span>
                         {complaintsListData.aduans.map((ad: any, idx: number) => (
-                            <Paper 
-                                key={idx} 
-                                variant="outlined" 
-                                sx={{ 
-                                    p: 1.5, 
-                                    borderRadius: 1.5,
-                                    bgcolor: 'background.default',
-                                    borderLeft: 4,
-                                    borderColor: ad.status === 'selesai' ? 'success.main' : (ad.status === 'ditolak' ? 'error.main' : 'warning.main')
-                                }}
-                            >
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                                    <Typography variant="body2" fontWeight="bold">Tiket: {ad.nomor_tiket}</Typography>
-                                    <Typography 
-                                        variant="caption" 
-                                        sx={{ 
-                                            textTransform: 'uppercase',
-                                            fontWeight: 'bold',
-                                            color: ad.status === 'selesai' ? 'success.main' : (ad.status === 'ditolak' ? 'error.main' : 'warning.main')
-                                        }}
-                                    >
-                                        {ad.status}
-                                    </Typography>
-                                </Box>
-                                <Typography variant="caption" color="text.secondary" display="block">Kategori: {ad.kategori}</Typography>
-                                <Typography variant="caption" color="text.secondary" display="block">Dibuat: {ad.created_at}</Typography>
-                            </Paper>
+                            <Card key={idx} className={`border-l-4 ${ad.status === 'selesai' ? 'border-l-green-500' : ad.status === 'ditolak' ? 'border-l-red-500' : 'border-l-yellow-500'}`}>
+                                <CardContent className="p-3 text-sm">
+                                    <div className="flex justify-between mb-1">
+                                        <span className="font-bold">Tiket: {ad.nomor_tiket}</span>
+                                        <span className={`text-xs font-bold uppercase ${ad.status === 'selesai' ? 'text-green-600' : ad.status === 'ditolak' ? 'text-red-600' : 'text-yellow-600'}`}>
+                                            {ad.status}
+                                        </span>
+                                    </div>
+                                    <span className="block text-muted-foreground">Kategori: {ad.kategori}</span>
+                                    <span className="block text-muted-foreground">Dibuat: {ad.created_at}</span>
+                                </CardContent>
+                            </Card>
                         ))}
-                    </Box>
+                    </div>
                 )}
-            </Box>
+            </div>
         );
     };
 
-    // Initialize session token
     useEffect(() => {
         const initSession = async () => {
             let savedToken = localStorage.getItem('simrs_session_token');
@@ -309,27 +218,25 @@ export default function Chat() {
                 }
             }
             setToken(savedToken);
-            
-            // Default Welcome message
+
             let initialMessages: Message[] = [
                 { role: 'assistant', content: 'Halo! Saya asisten virtual RS Techno Medic. Ada yang bisa saya bantu terkait jadwal, pendaftaran, atau layanan kami?' }
             ];
 
-            // Fetch session data
             if (savedToken) {
                 try {
                     const dataRes = await axios.get(`/api/chat/session/data?token_sesi=${savedToken}`);
                     if (dataRes.data && dataRes.data.success) {
                         const { bookings, aduans } = dataRes.data;
                         let contextMsg = "";
-                        
+
                         if (bookings.length > 0) {
-                            contextMsg += `\n\n<AppointmentsList>${JSON.stringify({bookings})}</AppointmentsList>`;
+                            contextMsg += `\n\n<AppointmentsList>${JSON.stringify({ bookings })}</AppointmentsList>`;
                         }
                         if (aduans.length > 0) {
-                            contextMsg += `\n\n<ComplaintsList>${JSON.stringify({aduans})}</ComplaintsList>`;
+                            contextMsg += `\n\n<ComplaintsList>${JSON.stringify({ aduans })}</ComplaintsList>`;
                         }
-                        
+
                         if (contextMsg !== "") {
                             initialMessages.push({
                                 role: 'assistant',
@@ -345,11 +252,28 @@ export default function Chat() {
             setMessages(initialMessages);
         };
 
+        const savedMessages = sessionStorage.getItem('simrs_chat_messages');
+        if (savedMessages) {
+            try {
+                const parsedMessages = JSON.parse(savedMessages);
+                if (parsedMessages.length > 0) {
+                    const savedToken = localStorage.getItem('simrs_session_token');
+                    setToken(savedToken);
+                    setMessages(parsedMessages);
+                    return;
+                }
+            } catch (e) {
+                console.error("Failed to parse saved messages", e);
+            }
+        }
+        
         initSession();
     }, []);
 
-    // Scroll to bottom when messages change
     useEffect(() => {
+        if (messages.length > 0) {
+            sessionStorage.setItem('simrs_chat_messages', JSON.stringify(messages));
+        }
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
@@ -357,10 +281,8 @@ export default function Chat() {
         if (!input.trim() || !token) return;
 
         const userMessage: Message = { role: 'user', content: input };
-        
-        // Simpan hanya N pesan terakhir (misal 6 terakhir) untuk konteks backend
         const history = messages.slice(-6);
-        
+
         setMessages((prev) => [...prev, userMessage]);
         setInput('');
         setLoading(true);
@@ -383,7 +305,7 @@ export default function Chat() {
         }
     };
 
-    const handleKeyPress = (e: React.KeyboardEvent) => {
+    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSend();
@@ -397,7 +319,6 @@ export default function Chat() {
             }
             setIsRecording(false);
         } else {
-            // Check for browser support
             const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
             if (!SpeechRecognition) {
                 alert("Maaf, browser Anda tidak mendukung fitur input suara.");
@@ -409,23 +330,16 @@ export default function Chat() {
             recognition.continuous = false;
             recognition.interimResults = false;
 
-            recognition.onstart = () => {
-                setIsRecording(true);
-            };
-
+            recognition.onstart = () => setIsRecording(true);
             recognition.onresult = (event: any) => {
                 const transcript = event.results[0][0].transcript;
                 setInput((prev) => (prev ? prev + ' ' : '') + transcript);
             };
-
             recognition.onerror = (event: any) => {
                 console.error("Speech recognition error:", event.error);
                 setIsRecording(false);
             };
-
-            recognition.onend = () => {
-                setIsRecording(false);
-            };
+            recognition.onend = () => setIsRecording(false);
 
             recognitionRef.current = recognition;
             recognition.start();
@@ -433,150 +347,76 @@ export default function Chat() {
     };
 
     return (
-        <Box sx={{ 
-            height: '100vh', 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center',
-            bgcolor: 'background.default',
-            p: 2 
-        }}>
-            <Paper 
-                elevation={3} 
-                sx={{ 
-                    width: '100%', 
-                    maxWidth: 600, 
-                    height: '90vh', 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    overflow: 'hidden',
-                    borderRadius: 3
-                }}
-            >
-                {/* Header */}
-                <Box sx={{ 
-                    p: 2, 
-                    bgcolor: 'primary.main', 
-                    color: 'primary.contrastText',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <SmartToyIcon />
-                        <Typography variant="h6" fontWeight="bold">
-                            CS RS Techno Medic
-                        </Typography>
-                    </Box>
-                    <ThemeToggleButton />
-                </Box>
-                <Divider />
+        <div className={`flex flex-col bg-background ${embedded ? 'h-full w-full' : 'h-screen items-center justify-center p-4 md:p-6'}`}>
+            <Card className={`flex flex-col overflow-hidden w-full ${embedded ? 'h-full border-none shadow-none rounded-none' : 'max-w-2xl h-[90vh] shadow-lg border rounded-xl'}`}>
+                
+                {!embedded && (
+                    <div className="flex items-center justify-between bg-primary p-4 text-primary-foreground">
+                        <div className="flex items-center gap-2">
+                            <Bot className="h-6 w-6" />
+                            <h2 className="font-bold text-lg">CS RS Techno Medic</h2>
+                        </div>
+                        <ThemeToggleButton />
+                    </div>
+                )}
+                {!embedded && <Separator />}
 
-                {/* Chat Area */}
-                <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2, bgcolor: 'background.paper' }}>
-                    <List>
+                <ScrollArea className="flex-1 p-4 bg-muted/20">
+                    <div className="flex flex-col gap-4">
                         {messages.map((msg, index) => (
-                            <ListItem 
-                                key={index} 
-                                sx={{ 
-                                    display: 'flex', 
-                                    justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                                    mb: 1 
-                                }}
-                            >
-                                <Box sx={{ 
-                                    maxWidth: '80%', 
-                                    display: 'flex', 
-                                    alignItems: 'flex-start',
-                                    gap: 1,
-                                    flexDirection: msg.role === 'user' ? 'row-reverse' : 'row'
-                                }}>
-                                    {/* Icon Profil */}
-                                    <Box sx={{ 
-                                        bgcolor: msg.role === 'user' ? 'secondary.main' : 'primary.light',
-                                        color: msg.role === 'user' ? 'secondary.contrastText' : 'primary.contrastText',
-                                        borderRadius: '50%',
-                                        p: 1,
-                                        display: 'flex'
-                                    }}>
-                                        {msg.role === 'user' ? <PersonIcon fontSize="small" /> : <SmartToyIcon fontSize="small" />}
-                                    </Box>
-                                    
-                                    {/* Bubble Text */}
-                                    <Paper 
-                                        elevation={1} 
-                                        sx={{ 
-                                            p: 1.5, 
-                                            bgcolor: msg.role === 'user' ? 'primary.main' : 'background.default',
-                                            color: msg.role === 'user' ? 'primary.contrastText' : 'text.primary',
-                                            borderRadius: 2,
-                                            borderTopRightRadius: msg.role === 'user' ? 0 : 8,
-                                            borderTopLeftRadius: msg.role === 'assistant' ? 0 : 8,
-                                            minWidth: (msg.content.includes('<JadwalData>') || msg.content.includes('<BookingSuccess>') || msg.content.includes('<AppointmentsList>')) ? '320px' : 'auto'
-                                        }}
-                                    >
+                            <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`flex items-start gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm ${msg.role === 'user' ? 'bg-secondary text-secondary-foreground' : 'bg-primary text-primary-foreground'}`}>
+                                        {msg.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                                    </div>
+                                    <div className={`rounded-2xl px-4 py-3 shadow-sm border text-sm ${msg.role === 'user' ? 'bg-primary text-primary-foreground border-transparent rounded-tr-sm' : 'bg-background text-foreground border-border rounded-tl-sm'}`}>
                                         {renderMessageContent(msg.content)}
-                                    </Paper>
-                                </Box>
-                            </ListItem>
+                                    </div>
+                                </div>
+                            </div>
                         ))}
                         {loading && (
-                            <ListItem sx={{ justifyContent: 'flex-start' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                    <CircularProgress size={20} />
-                                    <Typography variant="body2" color="text.secondary">AI sedang mengetik...</Typography>
-                                </Box>
-                            </ListItem>
+                            <div className="flex justify-start">
+                                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>AI sedang mengetik...</span>
+                                </div>
+                            </div>
                         )}
                         <div ref={messagesEndRef} />
-                    </List>
-                </Box>
+                    </div>
+                </ScrollArea>
 
-                {/* Input Area */}
-                <Box sx={{ p: 2, bgcolor: 'background.paper', borderTop: 1, borderColor: 'divider' }}>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                        <TextField
-                            fullWidth
-                            variant="outlined"
+                <div className="p-3 bg-background border-t">
+                    <div className="flex gap-2 items-center">
+                        <Input
+                            className="flex-1"
                             placeholder={isRecording ? "Sedang mendengarkan..." : "Ketik pertanyaan Anda..."}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            onKeyPress={handleKeyPress}
+                            onKeyDown={handleKeyPress}
                             disabled={loading || !token}
-                            size="small"
-                            multiline
-                            maxRows={3}
                         />
-                        <IconButton 
-                            onClick={toggleRecording} 
+                        <Button
+                            variant={isRecording ? "destructive" : "secondary"}
+                            size="icon"
+                            onClick={toggleRecording}
                             disabled={loading || !token}
-                            sx={{ 
-                                bgcolor: isRecording ? 'error.main' : 'grey.200',
-                                color: isRecording ? 'error.contrastText' : 'text.primary',
-                                '&:hover': { bgcolor: isRecording ? 'error.dark' : 'grey.300' },
-                                width: 40,
-                                height: 40
-                            }}
+                            className="shrink-0"
                         >
-                            {isRecording ? <StopCircleIcon /> : <MicIcon />}
-                        </IconButton>
-                        <IconButton 
-                            color="primary" 
-                            onClick={handleSend} 
+                            {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                            size="icon"
+                            onClick={handleSend}
                             disabled={loading || !input.trim() || !token}
-                            sx={{ 
-                                bgcolor: 'primary.main', 
-                                color: 'primary.contrastText',
-                                '&:hover': { bgcolor: 'primary.dark' },
-                                width: 40,
-                                height: 40
-                            }}
+                            className="shrink-0"
                         >
-                            <SendIcon />
-                        </IconButton>
-                    </Box>
-                </Box>
-            </Paper>
-        </Box>
+                            <Send className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            </Card>
+        </div>
     );
 }
