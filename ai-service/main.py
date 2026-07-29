@@ -143,8 +143,10 @@ def chat_endpoint(req: ChatRequest):
     # Menyusun riwayat percakapan untuk agent
     formatted_messages = []
     
-    # Konteks Role
-    role_instruction = f"PENTING: Anda sedang berinteraksi dengan pengguna berstatus '{req.user_role}'."
+    # Konteks Role dan Waktu
+    import datetime
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    role_instruction = f"PENTING: Anda sedang berinteraksi dengan pengguna berstatus '{req.user_role}'. Waktu dan Tanggal saat ini adalah {current_time}."
     if req.user_role == "staf":
         role_instruction += " Saat menggunakan submit_complaint_tool, set submitter_type='staf'. Anda TIDAK PERLU menanyakan kontak staf."
     else:
