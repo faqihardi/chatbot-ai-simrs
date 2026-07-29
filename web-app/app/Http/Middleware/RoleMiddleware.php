@@ -18,6 +18,9 @@ class RoleMiddleware
         $user = $request->user();
 
         if (!$user) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
             return redirect('/login');
         }
 
