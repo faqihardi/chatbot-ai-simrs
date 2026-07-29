@@ -1,129 +1,97 @@
 import React from 'react';
 import { usePage, Link, router } from '@inertiajs/react';
-import { 
-    Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, 
-    Toolbar, IconButton, Divider, Box 
-} from '@mui/material';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import { LogOut, SquareTerminal } from 'lucide-react';
 import { getMenusByRole } from '../../config/menu';
+import {
+    Sidebar as ShadcnSidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    useSidebar,
+} from '@/components/ui/sidebar';
 
-interface SidebarProps {
-    open: boolean;
-    handleDrawerClose: () => void;
-    drawerWidth: number;
-}
-
-export default function Sidebar({ open, handleDrawerClose, drawerWidth }: SidebarProps) {
-    const { auth } = usePage().props as any;
+export default function Sidebar() {
+    const { props, url } = usePage() as any;
+    const auth = props.auth;
     const userRole = auth?.user?.role || 'admin_cs';
-
-    const handleLogout = () => {
+    const { state } = useSidebar();
+    
+    const handleLogout = (e: React.MouseEvent) => {
+        e.preventDefault();
         router.post('/logout');
     };
 
     const menuItems = getMenusByRole(userRole);
 
+    const roleTitles: Record<string, string> = {
+        'staf': 'SIMRS Staf',
+        'admin_cs': 'SIMRS Admin CS',
+        'superadmin': 'SIMRS Superadmin',
+    };
+    const sidebarTitle = roleTitles[userRole] || 'SIMRS Portal';
+
     return (
-        <Drawer
-            variant="permanent"
-            open={open}
-            sx={{
-                width: drawerWidth,
-                flexShrink: 0,
-                whiteSpace: 'nowrap',
-                boxSizing: 'border-box',
-                ...(open && {
-                    '& .MuiDrawer-paper': {
-                        width: drawerWidth,
-                        transition: (theme) => theme.transitions.create('width', {
-                            easing: theme.transitions.easing.sharp,
-                            duration: theme.transitions.duration.enteringScreen,
-                        }),
-                        overflowX: 'hidden',
-                        backgroundColor: 'background.paper',
-                    },
-                }),
-                ...(!open && {
-                    '& .MuiDrawer-paper': {
-                        transition: (theme) => theme.transitions.create('width', {
-                            easing: theme.transitions.easing.sharp,
-                            duration: theme.transitions.duration.leavingScreen,
-                        }),
-                        width: (theme) => theme.spacing(7),
-                        overflowX: 'hidden',
-                        backgroundColor: 'background.paper',
-                    },
-                }),
-            }}
-        >
-            <Toolbar
-                sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    px: [1],
-                }}
-            >
-                <IconButton onClick={handleDrawerClose}>
-                    <ChevronLeftIcon />
-                </IconButton>
-            </Toolbar>
-            <Divider />
-            <List>
-                {menuItems.map((item, index) => (
-                    <ListItem key={index} disablePadding sx={{ display: 'block' }}>
-                        <ListItemButton
-                            component={Link}
-                            href={item.link}
-                            sx={{
-                                minHeight: 48,
-                                justifyContent: open ? 'initial' : 'center',
-                                px: 2.5,
-                            }}
-                        >
-                            <ListItemIcon
-                                sx={{
-                                    minWidth: 0,
-                                    mr: open ? 3 : 'auto',
-                                    justifyContent: 'center',
-                                    color: 'primary.main',
-                                }}
-                            >
-                                {item.icon}
-                            </ListItemIcon>
-                            <ListItemText primary={item.title} sx={{ opacity: open ? 1 : 0 }} />
-                        </ListItemButton>
-                    </ListItem>
-                ))}
-            </List>
-            
-            <Box sx={{ flexGrow: 1 }} />
-            <Divider />
-            <List>
-                <ListItem disablePadding sx={{ display: 'block' }}>
-                    <ListItemButton
-                        onClick={handleLogout}
-                        sx={{
-                            minHeight: 48,
-                            justifyContent: open ? 'initial' : 'center',
-                            px: 2.5,
-                        }}
-                    >
-                        <ListItemIcon
-                            sx={{
-                                minWidth: 0,
-                                mr: open ? 3 : 'auto',
-                                justifyContent: 'center',
-                                color: 'error.main'
-                            }}
-                        >
-                            <ExitToAppIcon />
-                        </ListItemIcon>
-                        <ListItemText primary="Logout" sx={{ opacity: open ? 1 : 0, color: 'error.main' }} />
-                    </ListItemButton>
-                </ListItem>
-            </List>
-        </Drawer>
+        <ShadcnSidebar variant="inset" collapsible="icon" className="border-r border-border">
+            <SidebarHeader>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton size="lg" className="w-full justify-start hover:bg-transparent">
+                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                                <span className="text-xs font-bold font-mono">RM</span>
+                            </div>
+                            <div className="flex flex-col gap-0.5 leading-none">
+                                <span className="font-semibold text-foreground tracking-tight">{sidebarTitle}</span>
+                                <span className="text-xs text-muted-foreground">{userRole}</span>
+                            </div>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarHeader>
+
+            <SidebarContent>
+                <SidebarGroup>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            {menuItems.map((item, index) => {
+                                const isActive = url?.startsWith(item.link) || false;
+                                // The icon from config might be a MUI icon component.
+                                // We should ideally update config to use lucide icons, but for now we render it.
+                                // If it errors, we will fix config/menu.tsx later.
+                                return (
+                                    <SidebarMenuItem key={index}>
+                                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                                            <Link href={item.link} className="flex items-center gap-3">
+                                                <span className={isActive ? "text-primary" : "text-muted-foreground"}>
+                                                    {item.icon}
+                                                </span>
+                                                <span className={isActive ? "font-medium text-foreground" : ""}>
+                                                    {item.title}
+                                                </span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                );
+                            })}
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+            </SidebarContent>
+
+            <SidebarFooter>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={handleLogout} tooltip="Logout" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                            <LogOut className="size-4" />
+                            <span>Logout</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarFooter>
+        </ShadcnSidebar>
     );
 }

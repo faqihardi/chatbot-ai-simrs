@@ -1,94 +1,121 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { usePage, router } from '@inertiajs/react';
-import { 
-    AppBar, Toolbar, IconButton, Typography, Box, Avatar, Menu, MenuItem, ListItemIcon
-} from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import LightModeIcon from '@mui/icons-material/LightMode';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import { Moon, Sun, Menu, User, LogOut } from 'lucide-react';
 import { useThemeMode } from '../../context/ThemeModeContext';
+import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 
-interface TopbarProps {
-    open: boolean;
-    handleDrawerOpen: () => void;
-    drawerWidth: number;
-}
-
-export default function Topbar({ open, handleDrawerOpen, drawerWidth }: TopbarProps) {
+export default function Topbar() {
     const { auth } = usePage().props as any;
     const { mode, toggleMode } = useThemeMode();
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-    const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
-    const handleMenuClose = () => setAnchorEl(null);
-
-    const handleLogout = () => {
+    const { state } = useSidebar();
+    
+    const handleLogout = (e: React.MouseEvent) => {
+        e.preventDefault();
         router.post('/logout');
     };
 
     return (
-        <AppBar 
-            position="fixed" 
-            sx={{ 
-                zIndex: (theme) => theme.zIndex.drawer + 1,
-                transition: (theme) => theme.transitions.create(['width', 'margin'], {
-                    easing: theme.transitions.easing.sharp,
-                    duration: theme.transitions.duration.leavingScreen,
-                }),
-                ...(open && {
-                    marginLeft: drawerWidth,
-                    width: `calc(100% - ${drawerWidth}px)`,
-                    transition: (theme) => theme.transitions.create(['width', 'margin'], {
-                        easing: theme.transitions.easing.sharp,
-                        duration: theme.transitions.duration.enteringScreen,
-                    }),
-                }),
-                backgroundColor: mode === 'light' ? 'primary.main' : 'background.paper',
-                color: mode === 'light' ? '#fff' : 'text.primary',
-            }}
-        >
-            <Toolbar>
-                <IconButton
-                    color="inherit"
-                    aria-label="open drawer"
-                    onClick={handleDrawerOpen}
-                    edge="start"
-                    sx={{ mr: 2, ...(open && { display: 'none' }) }}
-                >
-                    <MenuIcon />
-                </IconButton>
-                <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-                    SIMRS Chatbot Admin
-                </Typography>
+        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-4 border-b bg-background px-4 sm:px-6">
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div>
+                        <SidebarTrigger className="-ml-1" />
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                    <p>Toggle Sidebar</p>
+                </TooltipContent>
+            </Tooltip>
+            
+            {/* Logo Placeholder - visible mostly on small screens or when sidebar is closed */}
+            <div className={`flex items-center transition-opacity ${state === 'expanded' ? 'hidden sm:flex sm:opacity-0 w-0' : 'opacity-100 mr-2'}`}>
+                <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="8" fill="currentColor" fillOpacity="0.2"/>
+                    <path d="M16 8L24 24H8L16 8Z" fill="currentColor"/>
+                </svg>
+                <span className="ml-2 font-bold hidden sm:block">SIMRS</span>
+            </div>
 
-                <IconButton color="inherit" onClick={toggleMode} sx={{ mr: 2 }}>
-                    {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
-                </IconButton>
+            <div className="flex-1">
+                <Breadcrumb>
+                    <BreadcrumbList>
+                        <BreadcrumbItem className="hidden sm:block">
+                            <BreadcrumbLink href="#">Dashboard</BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator className="hidden sm:block" />
+                        <BreadcrumbItem>
+                            <BreadcrumbPage className="capitalize">
+                                {typeof window !== 'undefined' ? window.location.pathname.split('/').filter(x => x).pop() || 'Home' : 'Home'}
+                            </BreadcrumbPage>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
+            </div>
+            
+            <div className="flex items-center gap-2">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={toggleMode}>
+                            {mode === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                            <span className="sr-only">Toggle theme</span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                        <p>Ganti Tema</p>
+                    </TooltipContent>
+                </Tooltip>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={handleMenuOpen}>
-                    <Typography variant="body1" sx={{ mr: 1, display: { xs: 'none', sm: 'block' } }}>
-                        {auth?.user?.name || 'User'}
-                    </Typography>
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main', color: 'secondary.contrastText' }}>
-                        {auth?.user?.name ? auth.user.name.charAt(0).toUpperCase() : 'U'}
-                    </Avatar>
-                </Box>
-                <Menu
-                    anchorEl={anchorEl}
-                    open={Boolean(anchorEl)}
-                    onClose={handleMenuClose}
-                    transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                    anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                >
-                    <MenuItem onClick={handleLogout}>
-                        <ListItemIcon>
-                            <ExitToAppIcon fontSize="small" color="error" />
-                        </ListItemIcon>
-                        <Typography color="error">Logout</Typography>
-                    </MenuItem>
-                </Menu>
-            </Toolbar>
-        </AppBar>
+                <DropdownMenu>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarFallback className="bg-primary/10 text-primary">
+                                            {auth?.user?.name ? auth.user.name.charAt(0).toUpperCase() : 'U'}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </DropdownMenuTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                            <p>Profil Saya</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                        <DropdownMenuItem className="flex-col items-start">
+                            <div className="text-sm font-medium">{auth?.user?.name || 'User'}</div>
+                            <div className="text-xs text-muted-foreground">{auth?.user?.email || 'user@example.com'}</div>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Log out</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </header>
     );
 }

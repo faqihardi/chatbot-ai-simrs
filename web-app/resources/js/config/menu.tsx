@@ -1,9 +1,5 @@
 import React from 'react';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import ArticleIcon from '@mui/icons-material/Article';
-import ReportProblemIcon from '@mui/icons-material/ReportProblem';
-import EventNoteIcon from '@mui/icons-material/EventNote';
-import GroupIcon from '@mui/icons-material/Group';
+import { LayoutDashboard, FileText, AlertTriangle, CalendarDays, Users, MessageSquare } from 'lucide-react';
 
 export interface MenuItemConfig {
     title: string;
@@ -14,15 +10,19 @@ export interface MenuItemConfig {
 
 export const menuConfig: MenuItemConfig[] = [
     // Superadmin Menus
-    { title: 'Dashboard', icon: <DashboardIcon />, link: '/superadmin', roles: ['superadmin'] },
-    { title: 'Kelola Pengguna', icon: <GroupIcon />, link: '/superadmin/users', roles: ['superadmin'] },
-    { title: 'Generator Jadwal', icon: <EventNoteIcon />, link: '/superadmin/jadwal', roles: ['superadmin'] },
+    { title: 'Dashboard', icon: <LayoutDashboard className="size-4" />, link: '/superadmin', roles: ['superadmin'] },
+    { title: 'Kelola Pengguna', icon: <Users className="size-4" />, link: '/superadmin/users', roles: ['superadmin'] },
+    { title: 'Generator Jadwal', icon: <CalendarDays className="size-4" />, link: '/superadmin/jadwal', roles: ['superadmin'] },
     
     // Admin CS Menus
-    { title: 'Dashboard', icon: <DashboardIcon />, link: '/admin', roles: ['admin_cs'] },
-    { title: 'Kelola Dokumen', icon: <ArticleIcon />, link: '/admin/dokumen', roles: ['admin_cs'] },
-    { title: 'Kelola Aduan', icon: <ReportProblemIcon />, link: '/admin/aduan', roles: ['admin_cs'] },
-    { title: 'Kelola Booking', icon: <EventNoteIcon />, link: '/admin/booking', roles: ['admin_cs'] },
+    { title: 'Dashboard', icon: <LayoutDashboard className="size-4" />, link: '/admin', roles: ['admin_cs'] },
+    { title: 'Kelola Dokumen', icon: <FileText className="size-4" />, link: '/admin/dokumen', roles: ['admin_cs'] },
+    { title: 'Kelola Aduan', icon: <AlertTriangle className="size-4" />, link: '/admin/aduan', roles: ['admin_cs'] },
+    { title: 'Kelola Booking', icon: <CalendarDays className="size-4" />, link: '/admin/booking', roles: ['admin_cs'] },
+    
+    // Staf Menus
+    { title: 'Chat', icon: <MessageSquare className="size-4" />, link: '/staf/chat', roles: ['staf'] },
+    { title: 'Riwayat Aduan Saya', icon: <FileText className="size-4" />, link: '/staf/riwayat-aduan', roles: ['staf'] },
 ];
 
 export const getMenusByRole = (role: string) => {

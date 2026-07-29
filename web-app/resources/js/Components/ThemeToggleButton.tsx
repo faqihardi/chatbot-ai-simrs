@@ -1,18 +1,29 @@
 import React from 'react';
-import { IconButton, Tooltip, useTheme } from '@mui/material';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
+import { Moon, Sun } from 'lucide-react';
 import { useThemeMode } from '../context/ThemeModeContext';
+import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export default function ThemeToggleButton() {
     const { mode, toggleMode } = useThemeMode();
-    const theme = useTheme();
 
     return (
-        <Tooltip title={mode === 'dark' ? "Ganti ke Mode Terang" : "Ganti ke Mode Gelap"}>
-            <IconButton onClick={toggleMode} color="inherit" aria-label="toggle theme">
-                {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-            </IconButton>
-        </Tooltip>
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={toggleMode} className="rounded-full">
+                        {mode === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>{mode === 'dark' ? 'Ganti ke Mode Terang' : 'Ganti ke Mode Gelap'}</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
     );
 }

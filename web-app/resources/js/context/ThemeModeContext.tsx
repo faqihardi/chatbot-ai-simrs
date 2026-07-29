@@ -1,6 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import { getTheme } from '../theme';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -29,12 +27,20 @@ export const ThemeModeProvider: React.FC<ProviderProps> = ({ children }) => {
 
     useEffect(() => {
         const savedMode = localStorage.getItem('simrs-theme-mode') as ThemeMode;
-        if (savedMode === 'light' || savedMode === 'dark') {
-            setMode(savedMode);
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        const initialMode = savedMode === 'light' || savedMode === 'dark' 
+            ? savedMode 
+            : (prefersDark ? 'dark' : 'light');
+            
+        setMode(initialMode);
+        
+        if (initialMode === 'dark') {
+            document.documentElement.classList.add('dark');
         } else {
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            setMode(prefersDark ? 'dark' : 'light');
+            document.documentElement.classList.remove('dark');
         }
+        
         setMounted(true);
     }, []);
 
@@ -42,23 +48,24 @@ export const ThemeModeProvider: React.FC<ProviderProps> = ({ children }) => {
         setMode((prev) => {
             const newMode = prev === 'light' ? 'dark' : 'light';
             localStorage.setItem('simrs-theme-mode', newMode);
+            
+            if (newMode === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            
             return newMode;
         });
     };
 
-    const theme = useMemo(() => getTheme(mode), [mode]);
-
-    // Handle hydration mismatch
     if (!mounted) {
         return null;
     }
 
     return (
         <ThemeModeContext.Provider value={{ mode, toggleMode }}>
-            <ThemeProvider theme={theme}>
-                <CssBaseline />
-                {children}
-            </ThemeProvider>
+            {children}
         </ThemeModeContext.Provider>
     );
 };
