@@ -1,5 +1,2 @@
-packages:
-  - '.'
-
-publicHoistPattern:
-  - '@inertiajs/core'
+allowBuilds:
+  unrs-resolver: set this to true or false
