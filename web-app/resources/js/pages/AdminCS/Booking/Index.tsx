@@ -175,8 +175,8 @@ export default function BookingIndex({ bookings, filters }: { bookings: any, fil
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex flex-col">
-                                                <span className="font-medium">{row.poli?.nama}</span>
-                                                <span className="text-sm text-muted-foreground">dr. {row.dokter?.nama}</span>
+                                                <span className="font-medium">{row.slot?.dokter?.poli?.nama}</span>
+                                                <span className="text-sm text-muted-foreground">dr. {row.slot?.dokter?.nama}</span>
                                             </div>
                                         </TableCell>
                                         <TableCell>

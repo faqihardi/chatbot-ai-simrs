@@ -12,7 +12,7 @@ class AduanController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Aduan::query()->with('submitter'); // Load user details if submitter is staf
+        $query = Aduan::query()->with('staf'); // Load user details if submitter is staf
 
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;

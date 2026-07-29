@@ -11,7 +11,7 @@ class BookingController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Booking::query()->with(['dokter', 'poli', 'slot']);
+        $query = Booking::query()->with(['slot.dokter.poli']);
 
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;

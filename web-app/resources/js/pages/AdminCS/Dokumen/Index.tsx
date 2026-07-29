@@ -1,39 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import { Head, useForm, router } from '@inertiajs/react';
 import AppLayout from '../../../Layouts/AppLayout';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,10 +42,15 @@ import { Textarea } from "@/components/ui/textarea";
 export default function DokumenIndex({ dokumens, filters }: { dokumens: any, filters: any }) {
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || 'semua');
-    
+
     // Modal states
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+
+    // Extraction states
+    const [isExtracting, setIsExtracting] = useState(false);
+    const [extractError, setExtractError] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
         judul: '',
@@ -68,6 +74,8 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: any, fil
     const openCreateModal = () => {
         setEditingId(null);
         reset();
+        setExtractError(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
         setIsModalOpen(true);
     };
 
@@ -83,9 +91,54 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: any, fil
         setIsModalOpen(true);
     };
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validasi ukuran (Max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setExtractError('Ukuran file maksimal 5MB.');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        // Validasi ekstensi
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        if (ext !== 'pdf' && ext !== 'docx') {
+            setExtractError('Format file tidak didukung. Harap unggah PDF atau DOCX.');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        setExtractError(null);
+        setIsExtracting(true);
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await axios.post('/admin/dokumen/extract', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            if (response.data && response.data.success) {
+                // Set the extracted text into the form's 'isi' field
+                setData('isi', response.data.text);
+            }
+        } catch (error: any) {
+            console.error('Extraction error:', error);
+            setExtractError(error.response?.data?.error || 'Terjadi kesalahan saat mengekstrak dokumen.');
+        } finally {
+            setIsExtracting(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (editingId) {
             put(`/admin/dokumen/${editingId}`, {
                 onSuccess: () => setIsModalOpen(false),
@@ -186,7 +239,7 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: any, fil
                                 {dokumens.links.map((link: any, idx: number) => {
                                     const isPrevious = link.label.includes('Previous');
                                     const isNext = link.label.includes('Next');
-                                    
+
                                     if (!link.url && (isPrevious || isNext)) {
                                         return null;
                                     }
@@ -194,24 +247,24 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: any, fil
                                     return (
                                         <PaginationItem key={idx}>
                                             {isPrevious ? (
-                                                <PaginationPrevious 
-                                                    href={link.url || '#'} 
+                                                <PaginationPrevious
+                                                    href={link.url || '#'}
                                                     onClick={(e) => {
-                                                        if(!link.url) e.preventDefault();
+                                                        if (!link.url) e.preventDefault();
                                                     }}
                                                     className={!link.url ? 'pointer-events-none opacity-50' : ''}
                                                 />
                                             ) : isNext ? (
-                                                <PaginationNext 
-                                                    href={link.url || '#'} 
+                                                <PaginationNext
+                                                    href={link.url || '#'}
                                                     onClick={(e) => {
-                                                        if(!link.url) e.preventDefault();
+                                                        if (!link.url) e.preventDefault();
                                                     }}
                                                     className={!link.url ? 'pointer-events-none opacity-50' : ''}
                                                 />
                                             ) : (
-                                                <PaginationLink 
-                                                    href={link.url || '#'} 
+                                                <PaginationLink
+                                                    href={link.url || '#'}
                                                     isActive={link.active}
                                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                                 />
@@ -232,12 +285,12 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: any, fil
                         <DialogHeader>
                             <DialogTitle>{editingId ? 'Edit Dokumen' : 'Tambah Dokumen Baru'}</DialogTitle>
                             <DialogDescription>
-                                {editingId 
-                                    ? 'Ubah isi dokumen. Jika isi teks berubah, sistem AI akan memproses ulang dokumen ini (Re-embedding).' 
-                                    : 'Tambahkan dokumen ke basis pengetahuan. Sistem AI akan otomatis memproses dokumen ini setelah disimpan.'}
+                                {editingId
+                                    ? 'Ubah isi dokumen. Proses Re-embedding akan dilakukan.'
+                                    : 'Tambahkan dokumen ke basis pengetahuan.'}
                             </DialogDescription>
                         </DialogHeader>
-                        
+
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="judul">Judul Dokumen</Label>
@@ -249,7 +302,7 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: any, fil
                                 />
                                 {errors.judul && <p className="text-sm text-destructive">{errors.judul}</p>}
                             </div>
-                            
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="kategori">Kategori</Label>
@@ -274,6 +327,28 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: any, fil
 
                             <div className="grid gap-2">
                                 <Label htmlFor="isi">Isi Dokumen (Teks Lengkap)</Label>
+
+                                <div className="flex flex-col gap-2 p-4 border rounded-lg bg-muted/30">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                        <div>
+                                            <p className="font-semibold text-sm">Upload File (Ekstraksi Otomatis)</p>
+                                            <p className="text-xs text-muted-foreground">Format PDF atau DOCX (Max 5MB).</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                type="file"
+                                                accept=".pdf,.docx"
+                                                className="max-w-[200px]"
+                                                ref={fileInputRef}
+                                                onChange={handleFileUpload}
+                                                disabled={isExtracting}
+                                            />
+                                            {isExtracting && <span className="text-sm text-blue-500 font-medium">Mengekstrak...</span>}
+                                        </div>
+                                    </div>
+                                    {extractError && <p className="text-sm text-destructive font-medium">{extractError}</p>}
+                                </div>
+                                <div className="text-center text-xs text-muted-foreground font-bold my-1">ATAU KETIK/PASTE MANUAL DI BAWAH</div>
                                 <Textarea
                                     id="isi"
                                     value={data.isi}
@@ -288,21 +363,21 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: any, fil
                                 <Label>Status Aktif</Label>
                                 <div className="flex items-center gap-4">
                                     <label className="flex items-center gap-2 cursor-pointer">
-                                        <input 
-                                            type="radio" 
-                                            name="aktif" 
-                                            checked={data.aktif === true} 
-                                            onChange={() => setData('aktif', true)} 
+                                        <input
+                                            type="radio"
+                                            name="aktif"
+                                            checked={data.aktif === true}
+                                            onChange={() => setData('aktif', true)}
                                             className="w-4 h-4 text-primary"
                                         />
                                         <span>Ya</span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
-                                        <input 
-                                            type="radio" 
-                                            name="aktif" 
-                                            checked={data.aktif === false} 
-                                            onChange={() => setData('aktif', false)} 
+                                        <input
+                                            type="radio"
+                                            name="aktif"
+                                            checked={data.aktif === false}
+                                            onChange={() => setData('aktif', false)}
                                             className="w-4 h-4 text-primary"
                                         />
                                         <span>Tidak</span>

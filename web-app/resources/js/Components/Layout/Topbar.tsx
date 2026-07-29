@@ -33,6 +33,7 @@ export default function Topbar() {
     
     const handleLogout = (e: React.MouseEvent) => {
         e.preventDefault();
+        sessionStorage.removeItem('simrs_chat_messages');
         router.post('/logout');
     };
 

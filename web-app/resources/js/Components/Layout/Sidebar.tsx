@@ -23,6 +23,7 @@ export default function Sidebar() {
     
     const handleLogout = (e: React.MouseEvent) => {
         e.preventDefault();
+        sessionStorage.removeItem('simrs_chat_messages');
         router.post('/logout');
     };
 
@@ -58,10 +59,11 @@ export default function Sidebar() {
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {menuItems.map((item, index) => {
-                                const isActive = url?.startsWith(item.link) || false;
+                                // Strict match for base dashboard URLs to prevent matching subpaths like /admin/dokumen
+                                const isDashboard = item.link === '/admin' || item.link === '/superadmin';
+                                const isActive = isDashboard ? url === item.link : (url?.startsWith(item.link) || false);
+                                
                                 // The icon from config might be a MUI icon component.
-                                // We should ideally update config to use lucide icons, but for now we render it.
-                                // If it errors, we will fix config/menu.tsx later.
                                 return (
                                     <SidebarMenuItem key={index}>
                                         <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>

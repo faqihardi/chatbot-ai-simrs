@@ -100,6 +100,67 @@ class DokumenController extends Controller
         return redirect()->back()->with('success', 'Dokumen berhasil dihapus.');
     }
 
+    public function extractText(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|max:5120|mimes:pdf,docx' // Max 5MB
+        ]);
+
+        $file = $request->file('file');
+        
+        // Strict MIME check
+        $mime = $file->getMimeType();
+        if (!in_array($mime, ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])) {
+            return response()->json(['error' => 'Format file tidak didukung. Harap unggah PDF atau DOCX yang valid.'], 400);
+        }
+
+        // Simpan ke storage sementara lokal
+        $path = $file->storeAs('dokumen-uploads', 'temp_' . time() . '_' . $file->getClientOriginalName(), 'local');
+        $fullPath = storage_path('app/' . $path);
+
+        $extractedText = '';
+
+        try {
+            if ($mime === 'application/pdf') {
+                $parser = new \Smalot\PdfParser\Parser();
+                $pdf = $parser->parseFile($fullPath);
+                $extractedText = $pdf->getText();
+            } else {
+                // DOCX
+                $phpWord = \PhpOffice\PhpWord\IOFactory::load($fullPath);
+                foreach ($phpWord->getSections() as $section) {
+                    foreach ($section->getElements() as $element) {
+                        if (method_exists($element, 'getText')) {
+                            $extractedText .= $element->getText() . "\n";
+                        } elseif (method_exists($element, 'getElements')) {
+                            // Untuk elemen bersarang seperti TextRun
+                            foreach ($element->getElements() as $childElement) {
+                                if (method_exists($childElement, 'getText')) {
+                                    $extractedText .= $childElement->getText();
+                                }
+                            }
+                            $extractedText .= "\n";
+                        }
+                    }
+                }
+            }
+
+            // Bersihkan teks dari spasi kosong berlebih
+            $extractedText = trim(preg_replace('/\n{3,}/', "\n\n", $extractedText));
+            
+            // Hapus file sementara
+            @unlink($fullPath);
+
+            return response()->json(['success' => true, 'text' => $extractedText]);
+
+        } catch (\Exception $e) {
+            // Hapus file jika gagal
+            @unlink($fullPath);
+            Log::error('Ekstraksi file gagal: ' . $e->getMessage());
+            return response()->json(['error' => 'Gagal mengekstrak teks dari file. Pastikan file tidak rusak atau terenkripsi.'], 500);
+        }
+    }
+
     private function triggerFastApiReprocess($dokumenId)
     {
         try {

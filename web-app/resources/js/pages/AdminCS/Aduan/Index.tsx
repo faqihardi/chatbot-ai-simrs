@@ -2,38 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AppLayout from '../../../Layouts/AppLayout';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,7 +41,7 @@ import { Textarea } from "@/components/ui/textarea";
 export default function AduanIndex({ aduans, filters }: { aduans: any, filters: any }) {
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || 'semua');
-    
+
     // Modal states
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAduan, setEditingAduan] = useState<any>(null);
@@ -81,7 +81,7 @@ export default function AduanIndex({ aduans, filters }: { aduans: any, filters: 
     };
 
     const getStatusVariant = (status: string) => {
-        switch(status) {
+        switch (status) {
             case 'baru': return 'default';
             case 'diproses': return 'outline';
             case 'selesai': return 'default'; // Maybe use green bg
@@ -94,7 +94,7 @@ export default function AduanIndex({ aduans, filters }: { aduans: any, filters: 
         if (!dateString) return '-';
         return new Date(dateString).toLocaleDateString('id-ID', {
             day: '2-digit', month: 'short', year: 'numeric',
-            hour: '2-digit', minute:'2-digit'
+            hour: '2-digit', minute: '2-digit'
         });
     };
 
@@ -170,14 +170,14 @@ export default function AduanIndex({ aduans, filters }: { aduans: any, filters: 
                                             {formatDate(row.created_at)}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant={getStatusVariant(row.status)} 
-                                                   className={row.status === 'selesai' ? 'bg-green-500' : ''}>
+                                            <Badge variant={getStatusVariant(row.status)}
+                                                className={row.status === 'selesai' ? 'bg-green-500' : ''}>
                                                 {row.status.toUpperCase()}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="sm" onClick={() => openEditModal(row)}>
-                                                Tindaklanjuti
+                                                Tindak Lanjuti
                                             </Button>
                                         </TableCell>
                                     </TableRow>
@@ -194,7 +194,7 @@ export default function AduanIndex({ aduans, filters }: { aduans: any, filters: 
                                 {aduans.links.map((link: any, idx: number) => {
                                     const isPrevious = link.label.includes('Previous');
                                     const isNext = link.label.includes('Next');
-                                    
+
                                     if (!link.url && (isPrevious || isNext)) {
                                         return null;
                                     }
@@ -202,20 +202,20 @@ export default function AduanIndex({ aduans, filters }: { aduans: any, filters: 
                                     return (
                                         <PaginationItem key={idx}>
                                             {isPrevious ? (
-                                                <PaginationPrevious 
-                                                    href={link.url || '#'} 
-                                                    onClick={(e) => { if(!link.url) e.preventDefault(); }}
+                                                <PaginationPrevious
+                                                    href={link.url || '#'}
+                                                    onClick={(e) => { if (!link.url) e.preventDefault(); }}
                                                     className={!link.url ? 'pointer-events-none opacity-50' : ''}
                                                 />
                                             ) : isNext ? (
-                                                <PaginationNext 
-                                                    href={link.url || '#'} 
-                                                    onClick={(e) => { if(!link.url) e.preventDefault(); }}
+                                                <PaginationNext
+                                                    href={link.url || '#'}
+                                                    onClick={(e) => { if (!link.url) e.preventDefault(); }}
                                                     className={!link.url ? 'pointer-events-none opacity-50' : ''}
                                                 />
                                             ) : (
-                                                <PaginationLink 
-                                                    href={link.url || '#'} 
+                                                <PaginationLink
+                                                    href={link.url || '#'}
                                                     isActive={link.active}
                                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                                 />
@@ -239,7 +239,7 @@ export default function AduanIndex({ aduans, filters }: { aduans: any, filters: 
                                 Perbarui status aduan dan berikan tanggapan untuk pengguna.
                             </DialogDescription>
                         </DialogHeader>
-                        
+
                         <div className="grid gap-6 py-4">
                             {/* Read-only details */}
                             <div className="p-4 bg-muted/50 rounded-lg space-y-3 text-sm">
@@ -254,8 +254,8 @@ export default function AduanIndex({ aduans, filters }: { aduans: any, filters: 
                                 <div className="grid grid-cols-3 gap-2">
                                     <span className="text-muted-foreground">Pengirim:</span>
                                     <span className="col-span-2 font-medium">
-                                        {editingAduan?.tipe_pengirim === 'staf' && editingAduan?.submitter
-                                            ? `Staf: ${editingAduan.submitter.name}`
+                                        {editingAduan?.tipe_pengirim === 'staf' && editingAduan?.staf
+                                            ? `Staf: ${editingAduan.staf.name}`
                                             : `Pasien (Kontak: ${editingAduan?.kontak_terenkripsi || 'Anonim'})`}
                                     </span>
                                 </div>

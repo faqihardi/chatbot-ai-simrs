@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { usePage } from '@inertiajs/react';
+import { usePage, Head } from '@inertiajs/react';
 import { Send, Bot, User, Mic, Square, Loader2, CalendarDays, Clock, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -348,6 +348,7 @@ export default function Chat({ embedded = false }: ChatProps) {
 
     return (
         <div className={`flex flex-col bg-background ${embedded ? 'h-full w-full' : 'h-screen items-center justify-center p-4 md:p-6'}`}>
+            <Head title="Chat" />
             <Card className={`flex flex-col overflow-hidden w-full ${embedded ? 'h-full border-none shadow-none rounded-none' : 'max-w-2xl h-[90vh] shadow-lg border rounded-xl'}`}>
                 
                 {!embedded && (
