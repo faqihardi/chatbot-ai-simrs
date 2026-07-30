@@ -180,7 +180,10 @@ class DokumenController extends Controller
         try {
             // Internal call to FastAPI to reprocess document
             $fastApiUrl = env('FASTAPI_URL', 'http://127.0.0.1:8001');
-            $response = Http::post("{$fastApiUrl}/api/internal/documents/{$dokumenId}/reprocess");
+            $internalSecret = env('INTERNAL_API_SECRET', '');
+            $response = Http::withHeaders([
+                'X-Internal-Secret' => $internalSecret
+            ])->post("{$fastApiUrl}/api/internal/documents/{$dokumenId}/reprocess");
             
             if (!$response->successful()) {
                 Log::error("Gagal sinkronisasi dokumen $dokumenId ke FastAPI: " . $response->body());

@@ -58,7 +58,10 @@ class ChatController extends Controller
 
         try {
             $fastApiUrl = env('FASTAPI_URL', 'http://127.0.0.1:8001');
-            $response = Http::timeout(60)->post("{$fastApiUrl}/chat", [
+            $internalSecret = env('INTERNAL_API_SECRET', '');
+            $response = Http::timeout(60)->withHeaders([
+                'X-Internal-Secret' => $internalSecret
+            ])->post("{$fastApiUrl}/chat", [
                 'message' => $request->message,
                 'history' => $request->history ?? [],
                 'session_id' => $request->token_sesi,

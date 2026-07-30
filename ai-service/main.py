@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks, Header, HTTPException, Depends
 from pydantic import BaseModel
 import os
 from typing import List, Dict, Optional
@@ -9,6 +9,7 @@ from langchain_core.runnables.config import RunnableConfig
 from langgraph.prebuilt import create_react_agent
 from tools.rag import search_knowledge_base
 from tools.action import get_available_doctors, book_appointment, check_my_appointments, submit_complaint, check_complaint_status, find_complaints_by_contact
+from document_processor import process_document
 
 load_dotenv()
 
@@ -138,8 +139,13 @@ class ChatRequest(BaseModel):
     session_id: str = "default_session"
     user_role: str = "publik"
 
+def verify_internal_secret(x_internal_secret: Optional[str] = Header(None)):
+    secret = os.getenv("INTERNAL_API_SECRET")
+    if not secret or x_internal_secret != secret:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
 @app.post("/chat")
-def chat_endpoint(req: ChatRequest):
+def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
     # Menyusun riwayat percakapan untuk agent
     formatted_messages = []
     
@@ -183,3 +189,8 @@ def chat_endpoint(req: ChatRequest):
 @app.get("/")
 def read_root():
     return {"message": "AI Service is running with RAG capabilities"}
+
+@app.post("/api/internal/documents/{dokumen_id}/reprocess", status_code=202)
+def reprocess_document_endpoint(dokumen_id: int, background_tasks: BackgroundTasks, _ = Depends(verify_internal_secret)):
+    background_tasks.add_task(process_document, dokumen_id)
+    return {"status": "processing", "message": f"Proses embedding dokumen ID {dokumen_id} dimulai di latar belakang"}
