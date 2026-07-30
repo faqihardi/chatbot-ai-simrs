@@ -130,10 +130,24 @@ class DokumenController extends Controller
                 $phpWord = \PhpOffice\PhpWord\IOFactory::load($fullPath);
                 foreach ($phpWord->getSections() as $section) {
                     foreach ($section->getElements() as $element) {
+                        $isHeading = false;
+                        if (method_exists($element, 'getParagraphStyle')) {
+                            $pStyle = $element->getParagraphStyle();
+                            if ($pStyle && method_exists($pStyle, 'getStyleName')) {
+                                $styleName = strtolower((string)$pStyle->getStyleName());
+                                if (strpos($styleName, 'heading') !== false) {
+                                    $isHeading = true;
+                                }
+                            }
+                        }
+
+                        $prefix = $isHeading ? "\n## " : "";
+
                         if (method_exists($element, 'getText')) {
-                            $extractedText .= $element->getText() . "\n";
+                            $extractedText .= $prefix . $element->getText() . "\n";
                         } elseif (method_exists($element, 'getElements')) {
                             // Untuk elemen bersarang seperti TextRun
+                            $extractedText .= $prefix;
                             foreach ($element->getElements() as $childElement) {
                                 if (method_exists($childElement, 'getText')) {
                                     $extractedText .= $childElement->getText();

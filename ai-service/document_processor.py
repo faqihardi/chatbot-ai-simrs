@@ -41,7 +41,7 @@ def process_document(dokumen_id: int):
         cursor.execute("DELETE FROM chunk_dokumen WHERE dokumen_id = %s", (dokumen_id,))
 
         # 3. Chunk text
-        chunks_text = chunk_text(isi, max_words=300)
+        chunks_text = chunk_text(isi)
         if not chunks_text:
             print("Tidak ada chunk yang dihasilkan.")
             return

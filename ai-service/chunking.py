@@ -1,26 +1,23 @@
-def chunk_text(text: str, max_words: int = 300) -> list[str]:
+import os
+from dotenv import load_dotenv
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+load_dotenv()
+
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1500"))
+CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
+
+def chunk_text(text: str) -> list[str]:
     """
-    Pecah dokumen menjadi potongan kata dengan panjang maksimal `max_words`.
+    Pecah dokumen menjadi potongan karakter menggunakan RecursiveCharacterTextSplitter.
     """
     if not text:
         return []
-    
-    words = text.split()
-    chunks = []
-    
-    current_chunk = []
-    current_length = 0
-    
-    for word in words:
-        current_chunk.append(word)
-        current_length += 1
         
-        if current_length >= max_words:
-            chunks.append(" ".join(current_chunk))
-            current_chunk = []
-            current_length = 0
-            
-    if current_chunk:
-        chunks.append(" ".join(current_chunk))
-        
-    return chunks
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP,
+        separators=["\n## ", "\n\n", "\n", ". ", " "]
+    )
+    
+    return splitter.split_text(text)
