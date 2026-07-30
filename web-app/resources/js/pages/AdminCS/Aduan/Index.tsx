@@ -38,13 +38,36 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-export default function AduanIndex({ aduans, filters }: { aduans: any, filters: any }) {
+interface Aduan {
+    id: number;
+    nomor_tiket: string;
+    kategori: string;
+    tingkat_urgensi: string | null;
+    status: string;
+    tanggapan: string | null;
+    tipe_pengirim: string;
+    staf_id?: number | null;
+    staf?: { name: string, no_hp?: string, departemen?: string };
+    deskripsi: string;
+    lokasi_kejadian?: string | null;
+    kontak_terenkripsi?: string | null;
+    created_at: string;
+    ditindaklanjuti_pada: string | null;
+    selesai_pada: string | null;
+}
+
+interface PaginatedAduan {
+    data: Aduan[];
+    links: Array<{ url: string | null; label: string; active: boolean }>;
+}
+
+export default function AduanIndex({ aduans, filters }: { aduans: PaginatedAduan, filters: { search?: string, status?: string } }) {
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || 'semua');
 
     // Modal states
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingAduan, setEditingAduan] = useState<any>(null);
+    const [editingAduan, setEditingAduan] = useState<Aduan | null>(null);
 
     const { data, setData, put, processing, errors, reset } = useForm({
         status: 'baru',
@@ -62,7 +85,7 @@ export default function AduanIndex({ aduans, filters }: { aduans: any, filters: 
         return () => clearTimeout(delayDebounceFn);
     }, [search, status]);
 
-    const openEditModal = (aduan: any) => {
+    const openEditModal = (aduan: Aduan) => {
         setEditingAduan(aduan);
         setData({
             status: aduan.status,
@@ -157,7 +180,7 @@ export default function AduanIndex({ aduans, filters }: { aduans: any, filters: 
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                aduans.data.map((row: any) => (
+                                aduans.data.map((row: Aduan) => (
                                     <TableRow key={row.id}>
                                         <TableCell className="font-medium">{row.nomor_tiket}</TableCell>
                                         <TableCell>{row.kategori}</TableCell>
@@ -191,7 +214,7 @@ export default function AduanIndex({ aduans, filters }: { aduans: any, filters: 
                     <div className="flex items-center justify-center pt-4">
                         <Pagination>
                             <PaginationContent>
-                                {aduans.links.map((link: any, idx: number) => {
+                                {aduans.links.map((link, idx: number) => {
                                     const isPrevious = link.label.includes('Previous');
                                     const isNext = link.label.includes('Next');
 

@@ -39,7 +39,25 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-export default function DokumenIndex({ dokumens, filters }: { dokumens: any, filters: any }) {
+interface Dokumen {
+    id: number;
+    judul: string;
+    kategori: string;
+    sumber?: string;
+    isi: string;
+    aktif: boolean;
+    versi: number;
+    checksum: string;
+    created_at: string;
+    updated_at: string;
+}
+
+interface PaginatedData<T> {
+    data: T[];
+    links: Array<{ url: string | null; label: string; active: boolean }>;
+}
+
+export default function DokumenIndex({ dokumens, filters }: { dokumens: PaginatedData<Dokumen>, filters: { search?: string, status?: string } }) {
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || 'semua');
 
@@ -79,7 +97,7 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: any, fil
         setIsModalOpen(true);
     };
 
-    const openEditModal = (dokumen: any) => {
+    const openEditModal = (dokumen: Dokumen) => {
         setEditingId(dokumen.id);
         setData({
             judul: dokumen.judul,
@@ -89,6 +107,12 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: any, fil
             aktif: !!dokumen.aktif,
         });
         setIsModalOpen(true);
+    };
+
+    const handleDelete = (id: number) => {
+        if (confirm('Apakah Anda yakin ingin menghapus dokumen ini?')) {
+            destroy(`/admin/dokumen/${id}`);
+        }
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,9 +151,10 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: any, fil
                 // Set the extracted text into the form's 'isi' field
                 setData('isi', response.data.text);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Extraction error:', error);
-            setExtractError(error.response?.data?.error || 'Terjadi kesalahan saat mengekstrak dokumen.');
+            const err = error as { response?: { data?: { error?: string } } };
+            setExtractError(err.response?.data?.error || 'Terjadi kesalahan saat mengekstrak dokumen.');
         } finally {
             setIsExtracting(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -206,7 +231,7 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: any, fil
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                dokumens.data.map((row: any) => (
+                                dokumens.data.map((row: Dokumen) => (
                                     <TableRow key={row.id}>
                                         <TableCell className="font-medium max-w-[300px] truncate" title={row.judul}>
                                             {row.judul}
@@ -236,7 +261,7 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: any, fil
                     <div className="flex items-center justify-center pt-4">
                         <Pagination>
                             <PaginationContent>
-                                {dokumens.links.map((link: any, idx: number) => {
+                                {dokumens.links.map((link, idx: number) => {
                                     const isPrevious = link.label.includes('Previous');
                                     const isNext = link.label.includes('Next');
 

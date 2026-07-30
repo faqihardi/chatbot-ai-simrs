@@ -21,10 +21,20 @@ interface JadwalDataPayload {
     slots: Slot[];
 }
 
+interface BookingSuccessData {
+    nomor_booking: string;
+    nomor_antrean: string | null;
+    nama_pasien: string;
+    tipe_pasien: string;
+    dokter: string;
+    poli: string;
+    jadwal: string;
+}
+
 interface JadwalCardProps {
     data: JadwalDataPayload;
     tokenSesi: string;
-    onBookingSuccess: (bookingData: any) => void;
+    onBookingSuccess: (bookingData: BookingSuccessData) => void;
 }
 
 export default function JadwalCard({ data, tokenSesi, onBookingSuccess }: JadwalCardProps) {
@@ -101,10 +111,11 @@ export default function JadwalCard({ data, tokenSesi, onBookingSuccess }: Jadwal
                 onBookingSuccess({
                     nomor_booking: response.data.nomor_booking,
                     nomor_antrean: response.data.nomor_antrean,
-                    dokter_nama: selectedSlot?.dokter_nama,
-                    poli_nama: data.poli,
-                    tanggal: selectedSlot?.tanggal,
-                    jam: `${selectedSlot?.jam_mulai.substring(0, 5)} - ${selectedSlot?.jam_selesai.substring(0, 5)}`
+                    nama_pasien: namaPasien,
+                    tipe_pasien: jenisPembayaran,
+                    dokter: selectedSlot?.dokter_nama || '',
+                    poli: data.poli,
+                    jadwal: `${selectedSlot?.tanggal} ${selectedSlot?.jam_mulai.substring(0, 5)}`
                 });
             } else {
                 setError(response.data.message || 'Gagal mengonfirmasi pendaftaran.');

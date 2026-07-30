@@ -20,7 +20,45 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export default function AdminCsDashboard({ metrics, recentAduans, recentBookings }: { metrics: any, recentAduans: any, recentBookings: any }) {
+interface DashboardMetrics {
+    dokumen: {
+        total: number;
+        aktif: number;
+    };
+    aduan: {
+        baru: number;
+        diproses: number;
+    };
+    booking: {
+        terjadwal: number;
+        hari_ini: number;
+    };
+}
+
+interface RecentAduan {
+    id: number;
+    nomor_tiket: string;
+    kategori: string;
+    status: string;
+    created_at: string;
+}
+
+interface RecentBooking {
+    id: number;
+    nomor_booking: string;
+    nama_pasien: string;
+    poli: string;
+    jadwal: string;
+    status: string;
+}
+
+interface DashboardProps {
+    metrics: DashboardMetrics;
+    recentAduans: RecentAduan[];
+    recentBookings: RecentBooking[];
+}
+
+export default function AdminCsDashboard({ metrics, recentAduans, recentBookings }: DashboardProps) {
     const getStatusVariant = (status: string) => {
         switch(status) {
             case 'baru': return 'default';
@@ -131,7 +169,7 @@ export default function AdminCsDashboard({ metrics, recentAduans, recentBookings
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {recentAduans.map((aduan: any) => (
+                                        {recentAduans.map((aduan: RecentAduan) => (
                                             <TableRow key={aduan.id}>
                                                 <TableCell className="font-medium">{aduan.nomor_tiket}</TableCell>
                                                 <TableCell>{aduan.kategori}</TableCell>
@@ -174,7 +212,7 @@ export default function AdminCsDashboard({ metrics, recentAduans, recentBookings
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {recentBookings.map((booking: any) => (
+                                        {recentBookings.map((booking: RecentBooking) => (
                                             <TableRow key={booking.id}>
                                                 <TableCell>
                                                     <div className="font-medium">{booking.nama_pasien}</div>

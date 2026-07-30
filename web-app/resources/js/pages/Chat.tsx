@@ -19,15 +19,25 @@ interface ChatProps {
     embedded?: boolean;
 }
 
+interface PageProps {
+    auth: {
+        user: {
+            role: string;
+            name: string;
+        } | null;
+    };
+    [key: string]: unknown;
+}
+
 export default function Chat({ embedded = false }: ChatProps) {
-    const { auth } = usePage().props as any;
+    const { auth } = usePage<PageProps>().props;
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [token, setToken] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const recognitionRef = useRef<any>(null);
+    const recognitionRef = useRef<unknown>(null);
 
     const renderMessageContent = (content: string) => {
         const jadwalRegex = /<JadwalData>([\s\S]*?)<\/JadwalData>/;
@@ -319,7 +329,7 @@ export default function Chat({ embedded = false }: ChatProps) {
             }
             setIsRecording(false);
         } else {
-            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+            const SpeechRecognition = (window as unknown as { SpeechRecognition: any }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition: any }).webkitSpeechRecognition;
             if (!SpeechRecognition) {
                 alert("Maaf, browser Anda tidak mendukung fitur input suara.");
                 return;
@@ -331,11 +341,11 @@ export default function Chat({ embedded = false }: ChatProps) {
             recognition.interimResults = false;
 
             recognition.onstart = () => setIsRecording(true);
-            recognition.onresult = (event: any) => {
+            recognition.onresult = (event: { results: { transcript: string }[][] }) => {
                 const transcript = event.results[0][0].transcript;
                 setInput((prev) => (prev ? prev + ' ' : '') + transcript);
             };
-            recognition.onerror = (event: any) => {
+            recognition.onerror = (event: { error: string }) => {
                 console.error("Speech recognition error:", event.error);
                 setIsRecording(false);
             };

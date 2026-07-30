@@ -37,13 +37,41 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
-export default function BookingIndex({ bookings, filters }: { bookings: any, filters: any }) {
+interface Booking {
+    id: number;
+    nomor_booking: string;
+    nomor_antrean: string | null;
+    nama_pasien: string;
+    kontak_terenkripsi: string;
+    tipe_pasien: string;
+    jenis_pembayaran: string | null;
+    status: string;
+    waktu_kadaluarsa: string | null;
+    created_at: string;
+    slot_id: number;
+    slot?: {
+        tanggal: string;
+        jam_mulai: string;
+        jam_selesai: string;
+        dokter?: {
+            nama: string;
+            poli?: { nama: string };
+        };
+    };
+}
+
+interface PaginatedBooking {
+    data: Booking[];
+    links: Array<{ url: string | null; label: string; active: boolean }>;
+}
+
+export default function BookingIndex({ bookings, filters }: { bookings: PaginatedBooking, filters: { search?: string, status?: string } }) {
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || 'semua');
     
     // Modal states
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingBooking, setEditingBooking] = useState<any>(null);
+    const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
     const { data, setData, put, processing, reset } = useForm({
         status: 'terjadwal',
@@ -60,7 +88,7 @@ export default function BookingIndex({ bookings, filters }: { bookings: any, fil
         return () => clearTimeout(delayDebounceFn);
     }, [search, status]);
 
-    const openEditModal = (booking: any) => {
+    const openEditModal = (booking: Booking) => {
         setEditingBooking(booking);
         setData({
             status: booking.status,
@@ -160,7 +188,7 @@ export default function BookingIndex({ bookings, filters }: { bookings: any, fil
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                bookings.data.map((row: any) => (
+                                bookings.data.map((row: Booking) => (
                                     <TableRow key={row.id}>
                                         <TableCell className="font-medium text-lg">
                                             {row.nomor_antrean || '-'}
@@ -209,7 +237,7 @@ export default function BookingIndex({ bookings, filters }: { bookings: any, fil
                     <div className="flex items-center justify-center pt-4">
                         <Pagination>
                             <PaginationContent>
-                                {bookings.links.map((link: any, idx: number) => {
+                                {bookings.links.map((link, idx: number) => {
                                     const isPrevious = link.label.includes('Previous');
                                     const isNext = link.label.includes('Next');
                                     

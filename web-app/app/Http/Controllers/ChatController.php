@@ -57,7 +57,8 @@ class ChatController extends Controller
         }
 
         try {
-            $response = Http::timeout(60)->post('http://127.0.0.1:8001/chat', [
+            $fastApiUrl = env('FASTAPI_URL', 'http://127.0.0.1:8001');
+            $response = Http::timeout(60)->post("{$fastApiUrl}/chat", [
                 'message' => $request->message,
                 'history' => $request->history ?? [],
                 'session_id' => $request->token_sesi,

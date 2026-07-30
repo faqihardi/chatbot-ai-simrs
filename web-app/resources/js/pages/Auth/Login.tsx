@@ -21,7 +21,7 @@ export default function Login() {
         password: '',
         remember: false,
     });
-    
+
     const [showPassword, setShowPassword] = useState(false);
 
     const submit = (e: FormEvent) => {
@@ -35,9 +35,9 @@ export default function Login() {
             <div className="relative flex min-h-screen items-center justify-center bg-muted/40 p-4">
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
+                        <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={toggleMode}
                             className="absolute top-4 right-4"
                         >
@@ -104,9 +104,9 @@ export default function Login() {
                                 </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <input 
-                                    type="checkbox" 
-                                    id="remember" 
+                                <input
+                                    type="checkbox"
+                                    id="remember"
                                     checked={data.remember}
                                     onChange={(e) => setData('remember', e.target.checked)}
                                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"

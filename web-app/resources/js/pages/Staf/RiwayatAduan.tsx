@@ -29,7 +29,26 @@ import {
 import { router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 
-export default function RiwayatAduan({ aduans, filters }: { aduans: any, filters: any }) {
+interface Aduan {
+    id: number;
+    nomor_tiket: string;
+    kategori: string;
+    tingkat_urgensi: string | null;
+    status: string;
+    tanggapan: string | null;
+    deskripsi: string;
+    lokasi_kejadian?: string | null;
+    created_at: string;
+    ditindaklanjuti_pada: string | null;
+    selesai_pada: string | null;
+}
+
+interface PaginatedAduan {
+    data: Aduan[];
+    links: Array<{ url: string | null; label: string; active: boolean }>;
+}
+
+export default function RiwayatAduan({ aduans, filters }: { aduans: PaginatedAduan, filters: { search?: string, status?: string } }) {
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || 'semua');
 
@@ -114,7 +133,7 @@ export default function RiwayatAduan({ aduans, filters }: { aduans: any, filters
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                aduans.data.map((row: any) => (
+                                aduans.data.map((row: Aduan) => (
                                     <TableRow key={row.id}>
                                         <TableCell className="font-medium">{row.nomor_tiket}</TableCell>
                                         <TableCell>{row.kategori}</TableCell>
@@ -137,7 +156,7 @@ export default function RiwayatAduan({ aduans, filters }: { aduans: any, filters
                     <div className="flex items-center justify-center pt-4">
                         <Pagination>
                             <PaginationContent>
-                                {aduans.links.map((link: any, idx: number) => {
+                                {aduans.links.map((link, idx: number) => {
                                     const isPrevious = link.label.includes('Previous');
                                     const isNext = link.label.includes('Next');
                                     
