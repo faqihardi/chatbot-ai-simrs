@@ -20,7 +20,7 @@ export default function Sidebar() {
     const auth = props.auth;
     const userRole = auth?.user?.role || 'admin_cs';
     const { state } = useSidebar();
-    
+
     const handleLogout = (e: React.MouseEvent) => {
         e.preventDefault();
         sessionStorage.removeItem('simrs_chat_messages');
@@ -62,21 +62,26 @@ export default function Sidebar() {
                                 // Strict match for base dashboard URLs to prevent matching subpaths like /admin/dokumen
                                 const isDashboard = item.link === '/admin' || item.link === '/superadmin';
                                 const isActive = isDashboard ? url === item.link : (url?.startsWith(item.link) || false);
-                                
+
                                 // The icon from config might be a MUI icon component.
                                 return (
-                                    <SidebarMenuItem key={index}>
-                                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                                            <Link href={item.link} className="flex items-center gap-3">
-                                                <span className={isActive ? "text-primary" : "text-muted-foreground"}>
-                                                    {item.icon}
-                                                </span>
-                                                <span className={isActive ? "font-medium text-foreground" : ""}>
-                                                    {item.title}
-                                                </span>
-                                            </Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
+                                    <React.Fragment key={index}>
+                                        {item.title === 'Users' && userRole === 'superadmin' && (
+                                            <div className="my-2 border-t border-border" />
+                                        )}
+                                        <SidebarMenuItem>
+                                            <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                                                <Link href={item.link} className="flex items-center gap-3">
+                                                    <span className={isActive ? "text-primary" : "text-muted-foreground"}>
+                                                        {item.icon}
+                                                    </span>
+                                                    <span className={isActive ? "font-medium text-foreground" : ""}>
+                                                        {item.title}
+                                                    </span>
+                                                </Link>
+                                            </SidebarMenuButton>
+                                        </SidebarMenuItem>
+                                    </React.Fragment>
                                 );
                             })}
                         </SidebarMenu>

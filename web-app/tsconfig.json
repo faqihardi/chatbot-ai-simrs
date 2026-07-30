@@ -110,7 +110,8 @@
         "baseUrl": ".",
         "ignoreDeprecations": "6.0",
         "paths": {
-            "@/*": ["./resources/js/*"]
+            "@/*": ["./resources/js/*"],
+            "@/components/*": ["./resources/js/Components/*"]
         },
         "jsx": "react-jsx",
         "types": ["vite/client"]

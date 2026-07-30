@@ -35,6 +35,7 @@ interface DashboardMetrics {
         terjadwal: number;
         hari_ini: number;
     };
+    api_cost: string;
 }
 
 interface RecentAduan {
@@ -60,7 +61,7 @@ interface DashboardProps {
     recentBookings: RecentBooking[];
 }
 
-export default function AdminCsDashboard({ metrics, recentAduans, recentBookings }: DashboardProps) {
+export default function SuperadminDashboard({ metrics, recentAduans, recentBookings }: DashboardProps) {
     const getStatusVariant = (status: string) => {
         switch(status) {
             case 'baru': return 'default';
@@ -76,19 +77,19 @@ export default function AdminCsDashboard({ metrics, recentAduans, recentBookings
 
     return (
         <AppLayout>
-            <Head title="Dashboard Admin CS" />
+            <Head title="Dashboard Superadmin" />
             <div className="container max-w-7xl mx-auto py-6 space-y-8">
                 
                 {/* Header */}
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Dashboard Admin CS</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Dashboard Superadmin</h1>
                     <p className="text-muted-foreground mt-1">
                         Ikhtisar sistem pelayanan informasi, keluhan, dan pendaftaran.
                     </p>
                 </div>
 
                 {/* Metrics Grid */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                             <CardTitle className="text-sm font-medium">Dokumen Aktif (KB)</CardTitle>
@@ -137,6 +138,19 @@ export default function AdminCsDashboard({ metrics, recentAduans, recentBookings
                             <div className="text-2xl font-bold">{metrics.aduan.selesai}</div>
                             <p className="text-xs text-muted-foreground mt-1">
                                 Dari total {metrics.aduan.total} riwayat aduan
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-primary/5 border-primary/20">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                            <CardTitle className="text-sm font-medium text-primary">Biaya API Bulan Ini</CardTitle>
+                            <AlertTriangle className="h-4 w-4 text-primary" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-primary">{metrics.api_cost}</div>
+                            <p className="text-xs text-primary/80 mt-1">
+                                Estimasi tagihan Gemini API
                             </p>
                         </CardContent>
                     </Card>

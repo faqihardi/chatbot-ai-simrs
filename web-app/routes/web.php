@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StafController;
 use App\Http\Controllers\AdminCsController;
 use App\Http\Controllers\SuperadminController;
+use App\Http\Controllers\Superadmin\GenerateSlotController;
 
 use App\Http\Controllers\Admin\DokumenController as AdminDokumenController;
 use App\Http\Controllers\Admin\AduanController as AdminAduanController;
@@ -42,9 +43,15 @@ Route::middleware(['auth', 'role:admin_cs'])->group(function () {
 // Superadmin Routes
 Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('/superadmin', [SuperadminController::class, 'dashboard'])->name('superadmin.dashboard');
-    // We will add resource controllers for users, poli, dokter, jadwal, monitoring later
     Route::get('/superadmin/users', function() { return inertia('Superadmin/Users'); })->name('superadmin.users');
-    Route::get('/superadmin/jadwal', function() { return inertia('Superadmin/Jadwal'); })->name('superadmin.jadwal');
+    Route::get('/superadmin/poli', function() { return inertia('Superadmin/Poli'); })->name('superadmin.poli');
+    Route::get('/superadmin/dokter', function() { return inertia('Superadmin/Dokter'); })->name('superadmin.dokter');
+    
+    // Jadwal Slot Generator
+    Route::get('/superadmin/jadwal-slot/generate', [GenerateSlotController::class, 'index'])->name('superadmin.jadwal.generate');
+    Route::get('/superadmin/jadwal-slot/fetch', [GenerateSlotController::class, 'fetch'])->name('superadmin.jadwal.fetch');
+    Route::post('/superadmin/jadwal-slot/generate', [GenerateSlotController::class, 'store'])->name('superadmin.jadwal.store');
+    Route::delete('/superadmin/jadwal-slot/{id}', [GenerateSlotController::class, 'destroy'])->name('superadmin.jadwal.destroy');
 });
 
 // Chat Routes (Public)
