@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Table('poli')]
-#[Fillable(['kode','name'])]
+#[Fillable(['kode','nama'])]
 class Poli extends Model
 {
     public function dokters(): HasMany

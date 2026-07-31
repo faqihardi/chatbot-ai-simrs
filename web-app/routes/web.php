@@ -7,7 +7,11 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StafController;
 use App\Http\Controllers\AdminCsController;
 use App\Http\Controllers\SuperadminController;
+
 use App\Http\Controllers\Superadmin\GenerateSlotController;
+use App\Http\Controllers\Superadmin\UserController;
+use App\Http\Controllers\Superadmin\PoliController;
+use App\Http\Controllers\Superadmin\DokterController;
 
 use App\Http\Controllers\Admin\DokumenController as AdminDokumenController;
 use App\Http\Controllers\Admin\AduanController as AdminAduanController;
@@ -43,9 +47,9 @@ Route::middleware(['auth', 'role:admin_cs'])->group(function () {
 // Superadmin Routes
 Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('/superadmin', [SuperadminController::class, 'dashboard'])->name('superadmin.dashboard');
-    Route::get('/superadmin/users', function() { return inertia('Superadmin/Users'); })->name('superadmin.users');
-    Route::get('/superadmin/poli', function() { return inertia('Superadmin/Poli'); })->name('superadmin.poli');
-    Route::get('/superadmin/dokter', function() { return inertia('Superadmin/Dokter'); })->name('superadmin.dokter');
+    Route::resource('/superadmin/users', UserController::class)->except(['create', 'show', 'edit']);
+    Route::resource('/superadmin/poli', PoliController::class)->except(['create', 'show', 'edit']);
+    Route::resource('/superadmin/dokter', DokterController::class)->except(['create', 'show', 'edit']);
     
     // Jadwal Slot Generator
     Route::get('/superadmin/jadwal-slot/generate', [GenerateSlotController::class, 'index'])->name('superadmin.jadwal.generate');
