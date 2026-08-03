@@ -7,6 +7,7 @@ use Inertia\Inertia;
 use App\Models\Dokumen;
 use App\Models\Aduan;
 use App\Models\Booking;
+use App\Models\LogPemakaianApi;
 
 class SuperadminController extends Controller
 {
@@ -64,7 +65,7 @@ class SuperadminController extends Controller
                     'terjadwal' => $bookingTerjadwal,
                     'hari_ini' => $bookingHariIni,
                 ],
-                'api_cost' => 'Rp 0 (Free Tier)', // Dummy for now
+                'api_cost' => '$' . number_format((float)LogPemakaianApi::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->sum('estimasi_biaya'), 4),
             ],
             'recentAduans' => $recentAduans,
             'recentBookings' => $recentBookings,

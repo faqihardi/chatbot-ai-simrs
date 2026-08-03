@@ -173,16 +173,41 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
     inputs = {"messages": formatted_messages}
     config = {"configurable": {"thread_id": req.session_id}}
     
+    import time
+    from telemetry import log_interaksi_gagal, log_pemakaian_api
+    
+    start_time = time.time()
     try:
         # Eksekusi agent
         response = agent_executor.invoke(inputs, config=config)
-        final_message = response["messages"][-1].content
+        durasi_ms = int((time.time() - start_time) * 1000)
         
+        final_message = response["messages"][-1].content
         if isinstance(final_message, list):
             final_message = " ".join([m.get("text", "") for m in final_message if isinstance(m, dict) and "text" in m])
             
+        # Log Token Usage (Gemini default)
+        ai_msg = response["messages"][-1]
+        token_in, token_out = 0, 0
+        if hasattr(ai_msg, 'usage_metadata') and ai_msg.usage_metadata:
+            token_in = ai_msg.usage_metadata.get('input_tokens', 0)
+            token_out = ai_msg.usage_metadata.get('output_tokens', 0)
+            
+        log_pemakaian_api("gemini", "gemini-2.5-flash", "chat", token_in, token_out, 0.0, durasi_ms)
+        
+        # Deteksi Log Gagal jika jawaban bot buntu
+        resp_lower = str(final_message).lower()
+        if "informasi tidak ditemukan" in resp_lower or "tidak memiliki informasi" in resp_lower:
+            log_interaksi_gagal(req.session_id, req.message, "dokumen_tidak_ditemukan", None)
+        elif "kurang mengerti" in resp_lower or "bisa diperjelas" in resp_lower:
+            log_interaksi_gagal(req.session_id, req.message, "intent_tidak_jelas", None)
+            
         return {"reply": str(final_message)}
     except Exception as e:
+        durasi_ms = int((time.time() - start_time) * 1000)
+        log_pemakaian_api("gemini", "gemini-2.5-flash", "chat", 0, 0, 0.0, durasi_ms)
+        log_interaksi_gagal(req.session_id, req.message, "tool_error", None)
+        
         print(f"Error pada chat_endpoint: {e}")
         return {"reply": "Mohon maaf, sistem sedang mengalami gangguan saat memproses pertanyaan Anda."}
 

@@ -41,7 +41,8 @@ Route::middleware(['auth', 'role:admin_cs'])->group(function () {
     Route::resource('/admin/dokumen', AdminDokumenController::class);
     Route::resource('/admin/aduan', AdminAduanController::class)->only(['index', 'update']);
     Route::resource('/admin/booking', AdminBookingController::class)->only(['index', 'update']);
-    Route::get('/admin/log-gagal', function() { return inertia('AdminCS/LogGagal'); })->name('admin.log_gagal');
+    Route::get('/admin/log-gagal', [\App\Http\Controllers\Admin\LogGagalController::class, 'index'])->name('admin.log_gagal');
+    Route::post('/admin/log-gagal/{log}/review', [\App\Http\Controllers\Admin\LogGagalController::class, 'markReviewed'])->name('admin.log_gagal.review');
 });
 
 // Superadmin Routes
@@ -56,6 +57,9 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('/superadmin/jadwal-slot/fetch', [GenerateSlotController::class, 'fetch'])->name('superadmin.jadwal.fetch');
     Route::post('/superadmin/jadwal-slot/generate', [GenerateSlotController::class, 'store'])->name('superadmin.jadwal.store');
     Route::delete('/superadmin/jadwal-slot/{id}', [GenerateSlotController::class, 'destroy'])->name('superadmin.jadwal.destroy');
+
+    // Monitor Layanan
+    Route::get('/superadmin/monitor', [\App\Http\Controllers\Superadmin\MonitorController::class, 'index'])->name('superadmin.monitor');
 });
 
 // Chat Routes (Public)
