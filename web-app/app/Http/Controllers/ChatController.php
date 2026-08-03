@@ -32,6 +32,7 @@ class ChatController extends Controller
             'token_sesi' => Str::uuid()->toString(),
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
+            'user_id' => auth()->id(),
         ]);
 
         return response()->json(['token_sesi' => $sesi->token_sesi]);

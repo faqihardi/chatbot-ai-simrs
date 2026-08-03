@@ -14,10 +14,19 @@ class AduanService
     public function submit(array $data)
     {
         $sesi_id = null;
+        $staf_id = null;
+        $kontak = $data['contact'] ?? null;
+        
         if (!empty($data['session_id'])) {
             $sesi = SesiPercakapan::where('token_sesi', $data['session_id'])->first();
             if ($sesi) {
-                $sesi_id = $sesi->id;
+                if ($data['submitter_type'] === 'staf' && $sesi->user_id) {
+                    $staf_id = $sesi->user_id;
+                    $sesi_id = null;
+                    $kontak = null;
+                } else {
+                    $sesi_id = $sesi->id;
+                }
             }
         }
 
@@ -32,8 +41,9 @@ class AduanService
         return Aduan::create([
             'nomor_tiket' => $nomorTiket,
             'tipe_pengadu' => $data['submitter_type'],
+            'staf_id' => $staf_id,
             'sesi_id' => $sesi_id,
-            'kontak_terenkripsi' => $data['contact'] ?? null,
+            'kontak_terenkripsi' => $kontak,
             'kategori' => $data['category'],
             'lokasi' => $data['location'] ?? null,
             'deskripsi' => $data['description'],

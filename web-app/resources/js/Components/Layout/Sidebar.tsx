@@ -42,8 +42,8 @@ export default function Sidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" className="w-full justify-start hover:bg-transparent">
-                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                                <span className="text-xs font-bold font-mono">RM</span>
+                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-white overflow-hidden p-0.5">
+                                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
                             </div>
                             <div className="flex flex-col gap-0.5 leading-none">
                                 <span className="font-semibold text-foreground tracking-tight">{sidebarTitle}</span>

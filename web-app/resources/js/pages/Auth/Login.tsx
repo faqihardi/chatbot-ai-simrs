@@ -50,7 +50,8 @@ export default function Login() {
                     </TooltipContent>
                 </Tooltip>
                 <Card className="w-full max-w-sm">
-                    <CardHeader className="text-center">
+                    <CardHeader className="text-center flex flex-col items-center">
+                        <img src="/logo.png" alt="Logo RS" className="h-16 w-auto mb-2" />
                         <CardTitle className="text-2xl font-bold text-primary">Portal SIMRS Chatbot</CardTitle>
                         <CardDescription>Masuk menggunakan kredensial Anda</CardDescription>
                     </CardHeader>
