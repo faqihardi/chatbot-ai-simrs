@@ -6,6 +6,39 @@ from dotenv import load_dotenv
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+def get_all_polis() -> str:
+    """
+    Mengambil daftar seluruh poli yang tersedia di rumah sakit.
+    """
+    if not DATABASE_URL:
+        return "Database belum dikonfigurasi."
+
+    try:
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
+        
+        sql = "SELECT nama, kode FROM poli ORDER BY nama ASC"
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+        
+        if not rows:
+            return "Belum ada data poli yang terdaftar di rumah sakit."
+            
+        result = "Berikut adalah daftar poli yang tersedia:\n"
+        for row in rows:
+            result += f"- {row['nama']} (Kode: {row['kode']})\n"
+        return result
+
+    except Exception as e:
+        print(f"Error pada get_all_polis: {e}")
+        return "Terjadi kesalahan saat mengambil daftar poli."
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+
+
 def get_available_doctors(poli: str, tanggal: str = None) -> str:
     """
     Mencari jadwal dokter yang tersedia di poli tertentu.

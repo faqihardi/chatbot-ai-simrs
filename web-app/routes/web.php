@@ -38,7 +38,9 @@ Route::middleware(['auth', 'role:staf'])->group(function () {
 Route::middleware(['auth', 'role:admin_cs'])->group(function () {
     Route::get('/admin', [AdminCsController::class, 'dashboard'])->name('admin.dashboard');
     Route::post('/admin/dokumen/extract', [AdminDokumenController::class, 'extractText'])->name('admin.dokumen.extract');
-    Route::resource('/admin/dokumen', AdminDokumenController::class);
+    Route::resource('/admin/dokumen', AdminDokumenController::class)->parameters([
+        'dokumen' => 'dokumen'
+    ]);
     Route::resource('/admin/aduan', AdminAduanController::class)->only(['index', 'update']);
     Route::resource('/admin/booking', AdminBookingController::class)->only(['index', 'update']);
     Route::get('/admin/log-gagal', [\App\Http\Controllers\Admin\LogGagalController::class, 'index'])->name('admin.log_gagal');
