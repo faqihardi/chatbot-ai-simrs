@@ -91,7 +91,7 @@ export default function LogGagal({ logs, filters, auth }: PageProps) {
 
     const addToKnowledgeBase = (pertanyaan: string) => {
         // Redirect ke /admin/dokumen dengan parameter pencarian/prefill
-        window.open(`/admin/dokumen?create=true&judul=${encodeURIComponent(pertanyaan)}`, '_blank');
+        router.get('/admin/dokumen', { create: 'true', judul: pertanyaan });
     };
 
     return (

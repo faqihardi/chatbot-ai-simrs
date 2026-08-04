@@ -89,6 +89,22 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: Paginate
         return () => clearTimeout(delayDebounceFn);
     }, [search, status]);
 
+    // Menangkap parameter dari URL (misalnya dari Log Gagal)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('create') === 'true') {
+            setEditingId(null);
+            setData({
+                judul: params.get('judul') || '',
+                kategori: '',
+                sumber: '',
+                isi: '',
+                aktif: true,
+            });
+            setIsModalOpen(true);
+        }
+    }, []);
+
     const openCreateModal = () => {
         setEditingId(null);
         reset();
