@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Aduan;
 use App\Models\SesiPercakapan;
 use Illuminate\Support\Str;
+use App\Helpers\ContactHelper;
 
 class AduanService
 {
@@ -38,12 +39,16 @@ class AduanService
         // Nomor tiket format YYMMDD######
         $nomorTiket = date('ymd') . strtoupper(Str::random(6));
 
+        $nomorNormal = $kontak ? ContactHelper::normalisasiNomorHp($kontak) : null;
+        $kontakHash = $nomorNormal ? hash('sha256', $nomorNormal) : null;
+
         return Aduan::create([
             'nomor_tiket' => $nomorTiket,
             'tipe_pengadu' => $data['submitter_type'],
             'staf_id' => $staf_id,
             'sesi_id' => $sesi_id,
-            'kontak_terenkripsi' => $kontak,
+            'kontak_terenkripsi' => $nomorNormal,
+            'kontak_hash' => $kontakHash,
             'kategori' => $data['category'],
             'lokasi' => $data['location'] ?? null,
             'deskripsi' => $data['description'],
@@ -65,9 +70,10 @@ class AduanService
      */
     public function findByContact(string $contact)
     {
-        return Aduan::all()->filter(function ($a) use ($contact) {
-            return $a->kontak_terenkripsi === $contact;
-        });
+        $nomorNormal = ContactHelper::normalisasiNomorHp($contact);
+        $kontakHash = hash('sha256', $nomorNormal);
+
+        return Aduan::where('kontak_hash', $kontakHash)->get();
     }
 
     /**

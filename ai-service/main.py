@@ -1,137 +1,18 @@
 from fastapi import FastAPI, BackgroundTasks, Header, HTTPException, Depends
 from pydantic import BaseModel
 import os
+import json
+import hashlib
 from typing import List, Dict, Optional
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.tools import tool
-from langchain_core.runnables.config import RunnableConfig
-from langgraph.prebuilt import create_react_agent
-from tools.rag import search_knowledge_base
-from tools.action import get_available_doctors, book_appointment, check_my_appointments, submit_complaint, check_complaint_status, find_complaints_by_contact
+
+from llm_setup import get_cache, set_cache
+from agent_setup import agent_executor
 from document_processor import process_document
 
 load_dotenv()
 
 app = FastAPI(title="Chatbot AI SIMRS - AI Service")
-
-# Initialize LLM
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash", 
-    google_api_key=os.getenv("GEMINI_API_KEY"),
-    temperature=0
-)
-
-@tool
-def search_knowledge_base_tool(query: str) -> str:
-    """
-    Gunakan fungsi ini SECARA EKSKLUSIF untuk mencari informasi prosedur, administrasi, pendaftaran, jadwal, pembayaran, fasilitas, atau kebijakan layanan rumah sakit.
-    Jangan menjawab pertanyaan layanan/administrasi dari pengetahuan umum model, selalu cari dari basis pengetahuan ini.
-    Input `query` harus ringkas dan relevan.
-    """
-    return search_knowledge_base(query)
-
-@tool
-def get_available_doctors_tool(poli: str, tanggal: Optional[str] = None) -> str:
-    """
-    Gunakan fungsi ini untuk mencari jadwal dokter yang tersedia di poli tertentu.
-    Input `poli` bisa nama poli (misal: 'Penyakit Dalam', 'Kandungan') atau kode poli (misal: 'INT', 'OBG').
-    Input `tanggal` opsional dalam format 'YYYY-MM-DD'.
-    Mengembalikan data slot jadwal dokter yang aktif dan bisa di-booking.
-    """
-    return get_available_doctors(poli, tanggal)
-
-@tool
-def book_appointment_tool(slot_id: int, patient_name: str, contact: str, payment_type: Optional[str] = "umum") -> str:
-    """
-    Gunakan fungsi ini jika pengguna secara eksplisit meminta Anda mendaftarkan mereka atau membuatkan janji temu dokter baru di slot jadwal tertentu.
-    Input:
-    - slot_id: ID slot jadwal yang dipilih.
-    - patient_name: Nama lengkap pasien.
-    - contact: Nomor HP/kontak pasien.
-    - payment_type: Jenis pembayaran ('umum', 'bpjs', 'asuransi').
-    Mengembalikan detail booking jika pendaftaran berhasil.
-    """
-    return book_appointment(slot_id, patient_name, contact, payment_type)
-
-@tool
-def check_my_appointments_tool(contact: str) -> str:
-    """
-    Gunakan fungsi ini jika pengguna ingin memeriksa status janji temu (booking) aktif mereka.
-    Input:
-    - contact: Nomor HP/kontak pasien yang digunakan saat pendaftaran.
-    Mengembalikan daftar janji temu pasien yang terdaftar.
-    """
-    return check_my_appointments(contact)
-
-@tool
-def submit_complaint_tool(submitter_type: str, category: str, description: str, location: Optional[str] = "", urgency: Optional[str] = "Sedang", contact: Optional[str] = "", config: RunnableConfig = None) -> str:
-    """
-    Gunakan fungsi ini jika pengguna ingin mensubmit aduan atau keluhan terkait pelayanan rumah sakit.
-    Input:
-    - submitter_type: 'staf' jika pengadu adalah staf rumah sakit, atau 'publik' jika masyarakat/pasien.
-    - category: Kategori keluhan (contoh: Pelayanan, Fasilitas, Kebersihan, Medis).
-    - description: Deskripsi lengkap mengenai aduan.
-    - location: (Opsional) Lokasi kejadian aduan.
-    - urgency: (Opsional) 'Rendah', 'Sedang', atau 'Tinggi'.
-    - contact: (Opsional) Nomor HP/kontak pengadu. Pastikan meminta izin (consent) sebelum meminta kontak.
-    Mengembalikan Nomor Tiket aduan jika berhasil.
-    """
-    session_id = config.get("configurable", {}).get("thread_id", "") if config else ""
-    return submit_complaint(submitter_type, category, description, location, urgency, contact, session_id)
-
-@tool
-def check_complaint_status_tool(nomor_tiket: str) -> str:
-    """
-    Gunakan fungsi ini untuk mengecek status aduan berdasarkan nomor tiket.
-    Input:
-    - nomor_tiket: Nomor tiket aduan.
-    Mengembalikan data status aduan.
-    """
-    return check_complaint_status(nomor_tiket)
-
-@tool
-def find_complaints_by_contact_tool(contact: str) -> str:
-    """
-    Gunakan fungsi ini untuk mencari daftar aduan milik pengguna berdasarkan kontak.
-    Input:
-    - contact: Nomor HP/kontak pengadu.
-    Mengembalikan daftar aduan.
-    """
-    return find_complaints_by_contact(contact)
-
-tools = [
-    search_knowledge_base_tool, 
-    get_available_doctors_tool,
-    book_appointment_tool,
-    check_my_appointments_tool,
-    submit_complaint_tool,
-    check_complaint_status_tool,
-    find_complaints_by_contact_tool
-]
-
-
-system_prompt = """Anda adalah asisten virtual (Customer Service) resmi SIMRS.
-Tugas Anda adalah menjawab pertanyaan pasien menggunakan informasi dari basis pengetahuan (knowledge base) RS, mencari jadwal dokter, mendaftarkan janji temu, atau mengecek janji temu yang ada.
-- SELALU panggil tool `search_knowledge_base_tool` jika pengguna bertanya tentang layanan umum, administrasi, syarat pendaftaran, atau kebijakan RS.
-- SELALU panggil tool `get_available_doctors_tool` jika pengguna ingin mencari jadwal dokter atau berniat melakukan pendaftaran/booking dokter di poli tertentu.
-- JIKA tool `get_available_doctors_tool` mengembalikan data jadwal dokter, Anda wajib menyampaikannya secara tertulis dengan ramah, DAN menyertakan JSON data mentah yang dikembalikan tool tersebut secara utuh di akhir jawaban Anda, diapit oleh tag <JadwalData>JSON_DI_SINI</JadwalData> agar sistem dapat merender kartu jadwal interaktif (JadwalCard) di layar.
-- SELALU panggil tool `book_appointment_tool` jika pengguna memberikan data lengkap (ID slot, Nama Pasien, Nomor HP, dan jenis pembayaran) untuk membuat janji temu baru.
-- JIKA tool `book_appointment_tool` mengembalikan sukses, sampaikan detail konfirmasi pendaftaran secara tertulis (nomor booking, nomor antrean, nama dokter, hari, tanggal, jam), DAN sertakan JSON data mentah secara utuh di akhir jawaban Anda, diapit oleh tag <BookingSuccess>JSON_DI_SINI</BookingSuccess> agar sistem dapat merender kartu konfirmasi sukses.
-- SELALU panggil tool `check_my_appointments_tool` jika pengguna ingin mencari/melihat daftar janji temu miliknya menggunakan nomor HP/kontak.
-- JIKA tool `check_my_appointments_tool` mengembalikan daftar janji temu, sampaikan daftarnya secara tertulis, DAN sertakan JSON data mentah secara utuh di akhir jawaban Anda, diapit oleh tag <AppointmentsList>JSON_DI_SINI</AppointmentsList> agar sistem dapat merender daftar tersebut secara interaktif.
-- Jika pengguna ingin membuat aduan, minta informasi wajib (kategori dan deskripsi detail). Anda boleh menanyakan kontak (opsional), dengan pesan mikro: "(Anda bisa melewati pertanyaan ini jika ingin anonim)".
-- JIKA tool `submit_complaint_tool` mengembalikan pesan sukses, sampaikan Nomor Tiket aduan secara tertulis.
-- SELALU panggil tool `check_complaint_status_tool` jika pengguna ingin mengecek aduan menggunakan Nomor Tiket.
-- SELALU panggil tool `find_complaints_by_contact_tool` jika pengguna ingin mencari riwayat aduan menggunakan kontak.
-- JIKA status aduan atau daftar aduan ditemukan, sampaikan secara ringkas dan ramah, DAN sertakan JSON data mentah secara utuh di akhir jawaban Anda, diapit tag <ComplaintStatus>JSON</ComplaintStatus> atau <ComplaintsList>JSON</ComplaintsList> agar sistem dapat merendernya secara interaktif.
-- Jika tool mengembalikan "informasi tidak ditemukan", JANGAN MENGARANG JAWABAN (HALUSINASI). Sampaikan dengan sopan bahwa Anda tidak memiliki informasi tersebut atau arahkan untuk menghubungi CS manusia.
-- JANGAN PERNAH menjawab pertanyaan medis, diagnostik, atau memberikan resep.
-- Berikan jawaban yang ramah, profesional, dan ringkas. Jangan membuat paragraf yang terlalu panjang.
-"""
-
-# Buat ReAct Agent yang bisa memanggil tools
-agent_executor = create_react_agent(llm, tools, prompt=system_prompt)
 
 class ChatRequest(BaseModel):
     message: str
@@ -173,6 +54,18 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
     inputs = {"messages": formatted_messages}
     config = {"configurable": {"thread_id": req.session_id}}
     
+    # Hash for cache (exclude time to ensure cache hits)
+    cache_payload = {
+        "message": req.message,
+        "history": req.history,
+        "role": req.user_role
+    }
+    prompt_hash = hashlib.sha256(json.dumps(cache_payload, sort_keys=True).encode('utf-8')).hexdigest()
+    
+    cached_resp = get_cache(prompt_hash)
+    if cached_resp:
+        return cached_resp
+    
     import time
     from telemetry import log_interaksi_gagal, log_pemakaian_api
     
@@ -193,23 +86,30 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
             token_in = ai_msg.usage_metadata.get('input_tokens', 0)
             token_out = ai_msg.usage_metadata.get('output_tokens', 0)
             
-        log_pemakaian_api("gemini", "gemini-2.5-flash", "chat", token_in, token_out, 0.0, durasi_ms)
+        log_pemakaian_api("groq", "llama-hybrid", "chat", token_in, token_out, 0.0, durasi_ms)
         
         # Deteksi Log Gagal jika jawaban bot buntu
         resp_lower = str(final_message).lower()
-        if "informasi tidak ditemukan" in resp_lower or "tidak memiliki informasi" in resp_lower:
+        if resp_lower.startswith("maaf, informasi tidak ditemukan:"):
             log_interaksi_gagal(req.session_id, req.message, "dokumen_tidak_ditemukan", None)
         elif "kurang mengerti" in resp_lower or "bisa diperjelas" in resp_lower:
             log_interaksi_gagal(req.session_id, req.message, "intent_tidak_jelas", None)
             
-        return {"reply": str(final_message)}
+        result = {"reply": str(final_message)}
+        set_cache(prompt_hash, result)
+        return result
     except Exception as e:
         durasi_ms = int((time.time() - start_time) * 1000)
-        log_pemakaian_api("gemini", "gemini-2.5-flash", "chat", 0, 0, 0.0, durasi_ms)
+        log_pemakaian_api("gemini", "gemini-hybrid", "chat", 0, 0, 0.0, durasi_ms)
         log_interaksi_gagal(req.session_id, req.message, "tool_error", None)
         
-        print(f"Error pada chat_endpoint: {e}")
-        return {"reply": "Mohon maaf, sistem sedang mengalami gangguan saat memproses pertanyaan Anda."}
+        error_msg = str(e)
+        if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+            print("Rate limit exceeded after max_retries.")
+            return {"reply": "Sistem sedang sibuk, coba lagi dalam beberapa menit."}
+        else:
+            print(f"Error pada chat_endpoint: {e}")
+            return {"reply": "Mohon maaf, sistem sedang mengalami gangguan saat memproses pertanyaan Anda."}
 
 @app.get("/")
 def read_root():

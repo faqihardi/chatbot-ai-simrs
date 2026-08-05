@@ -67,6 +67,8 @@ class DokumenController extends Controller
             'sumber' => 'nullable|string',
             'aktif' => 'boolean',
         ]);
+        \Log::info('Request payload:', $request->all());
+        \Log::info('Validated payload:', $validated);
 
         $validated['diubah_oleh'] = Auth::id();
         

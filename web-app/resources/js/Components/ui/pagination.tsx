@@ -1,5 +1,6 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
+import { Link } from "@inertiajs/react"
 
 import { cn } from "@/lib/utils"
 import { ButtonProps, buttonVariants } from "@/components/ui/button"
@@ -37,26 +38,48 @@ PaginationItem.displayName = "PaginationItem"
 type PaginationLinkProps = {
   isActive?: boolean
 } & Pick<ButtonProps, "size"> &
-  React.ComponentProps<"a">
+  Omit<React.ComponentProps<typeof Link>, "size">
 
 const PaginationLink = ({
   className,
   isActive,
   size = "icon",
   ...props
-}: PaginationLinkProps) => (
-  <a
-    aria-current={isActive ? "page" : undefined}
-    className={cn(
-      buttonVariants({
-        variant: isActive ? "outline" : "ghost",
-        size,
-      }),
-      className
-    )}
-    {...props}
-  />
-)
+}: PaginationLinkProps) => {
+  if (!props.href || props.href === '#') {
+    return (
+      <span
+        aria-current={isActive ? "page" : undefined}
+        className={cn(
+          buttonVariants({
+            variant: isActive ? "outline" : "ghost",
+            size,
+          }),
+          className,
+          "opacity-50 cursor-not-allowed"
+        )}
+      >
+        {props.children}
+      </span>
+    )
+  }
+
+  return (
+    <Link
+      preserveScroll
+      preserveState
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        buttonVariants({
+          variant: isActive ? "outline" : "ghost",
+          size,
+        }),
+        className
+      )}
+      {...props}
+    />
+  )
+}
 PaginationLink.displayName = "PaginationLink"
 
 const PaginationPrevious = ({

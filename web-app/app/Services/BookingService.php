@@ -6,15 +6,17 @@ use App\Models\Booking;
 use App\Models\JadwalSlot;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use App\Helpers\ContactHelper;
 
 class BookingService
 {
     public function createDraft(array $data)
     {
         $kontak = $data['kontak'];
-        $existingBooking = Booking::all()->first(function ($b) use ($kontak) {
-            return $b->kontak_terenkripsi === $kontak;
-        });
+        $nomorNormal = ContactHelper::normalisasiNomorHp($kontak);
+        $kontakHash = hash('sha256', $nomorNormal);
+
+        $existingBooking = Booking::where('kontak_hash', $kontakHash)->exists();
         $tipePasien = $existingBooking ? 'lama' : 'baru';
 
         return Booking::create([
@@ -22,7 +24,8 @@ class BookingService
             'slot_id' => $data['slot_id'],
             'sesi_id' => $data['sesi_id'],
             'nama_pasien' => $data['nama_pasien'],
-            'kontak_terenkripsi' => $kontak,
+            'kontak_terenkripsi' => $nomorNormal,
+            'kontak_hash' => $kontakHash,
             'tipe_pasien' => $tipePasien,
             'jenis_pembayaran' => $data['jenis_pembayaran'],
             'keluhan_singkat' => $data['keluhan_singkat'] ?? null,
@@ -87,9 +90,10 @@ class BookingService
             }
 
             $contact = $data['kontak'];
-            $existing = Booking::all()->first(function ($b) use ($contact) {
-                return $b->kontak_terenkripsi === $contact;
-            });
+            $nomorNormal = ContactHelper::normalisasiNomorHp($contact);
+            $kontakHash = hash('sha256', $nomorNormal);
+
+            $existing = Booking::where('kontak_hash', $kontakHash)->exists();
             $tipePasien = $existing ? 'lama' : 'baru';
 
             $countToday = Booking::whereHas('slot', function ($query) use ($slot) {
@@ -107,7 +111,8 @@ class BookingService
                 'nomor_antrean' => $nomorAntrean,
                 'slot_id' => $data['slot_id'],
                 'nama_pasien' => $data['nama_pasien'],
-                'kontak_terenkripsi' => $contact,
+                'kontak_terenkripsi' => $nomorNormal,
+                'kontak_hash' => $kontakHash,
                 'tipe_pasien' => $tipePasien,
                 'jenis_pembayaran' => $data['jenis_pembayaran'],
                 'status' => 'terjadwal',
@@ -121,11 +126,12 @@ class BookingService
 
     public function findByContact(string $contact)
     {
+        $nomorNormal = ContactHelper::normalisasiNomorHp($contact);
+        $kontakHash = hash('sha256', $nomorNormal);
+
         return Booking::with(['slot.dokter.poli'])
-            ->get()
-            ->filter(function ($b) use ($contact) {
-                return $b->kontak_terenkripsi === $contact;
-            });
+            ->where('kontak_hash', $kontakHash)
+            ->get();
     }
 
     public function findActiveBySession(int $sesiId)

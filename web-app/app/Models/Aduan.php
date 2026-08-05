@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Table('aduan')]
-#[Fillable(['nomor_tiket','tipe_pengadu','staf_id','sesi_id','kontak_terenkripsi','kategori','lokasi','deskripsi','urgensi','status','tanggapan','ditindaklanjuti_pada','selesai_pada'])]
+#[Fillable(['nomor_tiket','tipe_pengadu','staf_id','sesi_id','kontak_terenkripsi','kontak_hash','kategori','lokasi','deskripsi','urgensi','status','tanggapan','ditindaklanjuti_pada','selesai_pada'])]
 class Aduan extends Model
 {
     protected function casts(): array

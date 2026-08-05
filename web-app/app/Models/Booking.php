@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Table('booking')]
-#[Fillable(['nomor_booking','nomor_antrean','slot_id','sesi_id','nama_pasien','kontak_terenkripsi','tipe_pasien','jenis_pembayaran','keluhan_singkat','status','kadaluarsa_pada','konfirmasi_direncanakan_pada','konfirmasi_terkirim_pada',])]
+#[Fillable(['nomor_booking','nomor_antrean','slot_id','sesi_id','nama_pasien','kontak_terenkripsi','kontak_hash','tipe_pasien','jenis_pembayaran','keluhan_singkat','status','kadaluarsa_pada','konfirmasi_direncanakan_pada','konfirmasi_terkirim_pada',])]
 class Booking extends Model
 {
     protected function casts(): array
