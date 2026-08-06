@@ -16,8 +16,17 @@ class JadwalService
     {
         $query = JadwalSlot::with(['dokter.poli'])
             ->whereDoesntHave('bookings', function ($q) {
-                $q->where('status', 'terjadwal');
+                $q->whereIn('status', ['terjadwal', 'selesai']);
             });
+
+        $now = now();
+        $query->where(function ($q) use ($now) {
+            $q->where('tanggal', '>', $now->format('Y-m-d'))
+              ->orWhere(function ($subq) use ($now) {
+                  $subq->where('tanggal', '=', $now->format('Y-m-d'))
+                       ->where('jam_mulai', '>', $now->format('H:i:s'));
+              });
+        });
 
         if ($poli) {
             $query->whereHas('dokter.poli', function ($q) use ($poli) {
@@ -42,13 +51,21 @@ class JadwalService
 
         return $slots->map(function ($slot) {
             $hasTerjadwal = $slot->bookings->where('status', 'terjadwal')->isNotEmpty();
+            $hasSelesai = $slot->bookings->where('status', 'selesai')->isNotEmpty();
             $hasAnyHistory = $slot->bookings->isNotEmpty();
+            
+            $statusBadge = 'Kosong';
+            if ($hasTerjadwal) {
+                $statusBadge = 'Terjadwal';
+            } elseif ($hasSelesai) {
+                $statusBadge = 'Selesai';
+            }
             
             return [
                 'id' => $slot->id,
                 'jam_mulai' => Carbon::parse($slot->jam_mulai)->format('H:i'),
                 'jam_selesai' => Carbon::parse($slot->jam_selesai)->format('H:i'),
-                'status' => $hasTerjadwal ? 'Terjadwal' : 'Kosong',
+                'status' => $statusBadge,
                 'can_delete' => !$hasAnyHistory
             ];
         });

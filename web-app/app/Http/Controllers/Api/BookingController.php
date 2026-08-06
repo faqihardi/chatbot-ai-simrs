@@ -113,17 +113,30 @@ class BookingController extends Controller
         ]);
 
         $bookings = $this->bookingService->findByContact($request->kontak);
+        
+        $now = now();
+        $formatted = $bookings->map(function ($b) use ($now) {
+            // Cek kadaluarsa otomatis jika masih terjadwal tapi waktu sudah lewat
+            if ($b->status === \App\Enums\BookingStatus::Terjadwal) {
+                $jadwalTime = \Carbon\Carbon::parse($b->slot->tanggal->format('Y-m-d') . ' ' . $b->slot->jam_selesai->format('H:i'));
+                if ($jadwalTime->isPast()) {
+                    $b->update(['status' => \App\Enums\BookingStatus::Expired]);
+                    $b->status = \App\Enums\BookingStatus::Expired;
+                }
+            }
 
-        $formatted = $bookings->map(function ($b) {
             return [
                 'nomor_booking' => $b->nomor_booking,
                 'nomor_antrean' => $b->nomor_antrean,
+                'nama_pasien' => $b->nama_pasien,
                 'dokter_nama' => $b->slot->dokter->nama,
                 'poli_nama' => $b->slot->dokter->poli->nama,
-                'tanggal' => $b->slot->tanggal,
-                'jam' => substr($b->slot->jam_mulai, 0, 5) . ' - ' . substr($b->slot->jam_selesai, 0, 5),
+                'tanggal' => $b->slot->tanggal->format('Y-m-d'),
+                'jam' => $b->slot->jam_mulai->format('H:i') . ' - ' . $b->slot->jam_selesai->format('H:i'),
                 'status' => $b->status->value ?? $b->status,
             ];
+        })->filter(function ($b) {
+            return $b['status'] === \App\Enums\BookingStatus::Terjadwal->value || $b['status'] === 'terjadwal';
         })->values();
 
         return response()->json([

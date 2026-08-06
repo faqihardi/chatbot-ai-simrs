@@ -37,14 +37,14 @@ export default function Chat({ embedded = false }: ChatProps) {
     const [isRecording, setIsRecording] = useState(false);
     const [token, setToken] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const recognitionRef = useRef<unknown>(null);
+    const recognitionRef = useRef<any>(null);
 
     const renderMessageContent = (content: string) => {
-        const jadwalRegex = /<JadwalData>([\s\S]*?)<\/JadwalData>/;
-        const bookingSuccessRegex = /<BookingSuccess>([\s\S]*?)<\/BookingSuccess>/;
-        const appointmentsRegex = /<AppointmentsList>([\s\S]*?)<\/AppointmentsList>/;
-        const complaintStatusRegex = /<ComplaintStatus>([\s\S]*?)<\/ComplaintStatus>/;
-        const complaintsListRegex = /<ComplaintsList>([\s\S]*?)<\/ComplaintsList>/;
+        const jadwalRegex = /<JadwalData>([\s\S]*?)(?:<\/JadwalData>|<JadwalData>|$)/;
+        const bookingSuccessRegex = /<BookingSuccess>([\s\S]*?)(?:<\/BookingSuccess>|<BookingSuccess>|$)/;
+        const appointmentsRegex = /<AppointmentsList>([\s\S]*?)(?:<\/AppointmentsList>|<AppointmentsList>|$)/;
+        const complaintStatusRegex = /<ComplaintStatus>([\s\S]*?)(?:<\/ComplaintStatus>|<ComplaintStatus>|$)/;
+        const complaintsListRegex = /<ComplaintsList>([\s\S]*?)(?:<\/ComplaintsList>|<ComplaintsList>|$)/;
 
         let cleanText = content;
         let scheduleData = null;
@@ -140,7 +140,7 @@ export default function Chat({ embedded = false }: ChatProps) {
                 {appointmentsListData && (
                     <div className="flex flex-col gap-2 mt-2">
                         <span className="text-sm font-bold text-primary">Daftar Janji Temu Aktif Anda</span>
-                        {appointmentsListData.bookings.map((app: any, idx: number) => (
+                        {Array.isArray(appointmentsListData.bookings) && appointmentsListData.bookings.map((app: any, idx: number) => (
                             <Card key={idx} className={`border-l-4 ${app.status === 'terjadwal' ? 'border-l-blue-500' : 'border-l-gray-400'}`}>
                                 <CardContent className="p-3 text-sm">
                                     <div className="flex justify-between mb-1">
@@ -151,6 +151,7 @@ export default function Chat({ embedded = false }: ChatProps) {
                                     </div>
                                     <span className="block text-muted-foreground">Poli: {app.poli_nama}</span>
                                     <span className="block text-muted-foreground">Jadwal: {app.tanggal} @ {app.jam}</span>
+                                    <span className="block text-muted-foreground font-semibold">Pasien: {app.nama_pasien}</span>
                                     <Separator className="my-2" />
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">No. Booking: {app.nomor_booking}</span>
@@ -193,7 +194,7 @@ export default function Chat({ embedded = false }: ChatProps) {
                 {complaintsListData && (
                     <div className="flex flex-col gap-2 mt-2">
                         <span className="text-sm font-bold text-primary">Daftar Riwayat Aduan Anda</span>
-                        {complaintsListData.aduans.map((ad: any, idx: number) => (
+                        {Array.isArray(complaintsListData.aduans) && complaintsListData.aduans.map((ad: any, idx: number) => (
                             <Card key={idx} className={`border-l-4 ${ad.status === 'selesai' ? 'border-l-green-500' : ad.status === 'ditolak' ? 'border-l-red-500' : 'border-l-yellow-500'}`}>
                                 <CardContent className="p-3 text-sm">
                                     <div className="flex justify-between mb-1">

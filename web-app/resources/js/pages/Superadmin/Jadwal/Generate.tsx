@@ -43,6 +43,8 @@ export default function GenerateSlot({ dokters }: { dokters: Dokter[] }) {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [slotToDelete, setSlotToDelete] = useState<number | null>(null);
 
+    const [selectedSlots, setSelectedSlots] = useState<number[]>([]);
+
     // Hitung preview dinamis
     useEffect(() => {
         if (data.jam_mulai && data.jam_selesai && data.durasi > 0) {
@@ -74,6 +76,7 @@ export default function GenerateSlot({ dokters }: { dokters: Dokter[] }) {
                 }
             });
             setSlots(response.data);
+            setSelectedSlots([]); // Reset selections on fetch
         } catch (error) {
             console.error("Failed to fetch slots", error);
         } finally {
@@ -120,6 +123,39 @@ export default function GenerateSlot({ dokters }: { dokters: Dokter[] }) {
             toast.error(msg);
         } finally {
             setSlotToDelete(null);
+        }
+    };
+
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            const deletableIds = slots.filter(s => s.can_delete).map(s => s.id);
+            setSelectedSlots(deletableIds);
+        } else {
+            setSelectedSlots([]);
+        }
+    };
+
+    const toggleSelect = (id: number) => {
+        setSelectedSlots(prev => 
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
+    };
+
+    const handleDeleteBatch = async () => {
+        if (selectedSlots.length === 0) return;
+        if (!confirm(`Yakin ingin menghapus ${selectedSlots.length} slot jadwal terpilih?`)) return;
+
+        try {
+            const response = await axios.delete('/superadmin/jadwal-slot/batch', {
+                data: { ids: selectedSlots }
+            });
+            if (response.data.success) {
+                toast.success(response.data.message);
+                fetchSlots();
+            }
+        } catch (error: any) {
+            const msg = error.response?.data?.message || 'Gagal menghapus slot batch';
+            toast.error(msg);
         }
     };
 
@@ -247,18 +283,48 @@ export default function GenerateSlot({ dokters }: { dokters: Dokter[] }) {
                                 <p className="text-sm text-muted-foreground mt-1">Gunakan form di samping untuk mulai men-generate slot.</p>
                             </div>
                         ) : slots.length > 0 ? (
-                            <div className="relative overflow-x-auto rounded-lg border border-border">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="text-xs uppercase bg-muted text-muted-foreground">
-                                        <tr>
-                                            <th className="px-4 py-3 font-medium">Waktu</th>
-                                            <th className="px-4 py-3 font-medium">Status</th>
-                                            <th className="px-4 py-3 font-medium text-right">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-border">
+                            <div className="flex flex-col gap-4">
+                                {selectedSlots.length > 0 && (
+                                    <div className="flex items-center justify-between bg-destructive/10 text-destructive px-4 py-2 rounded-md">
+                                        <span className="text-sm font-medium">{selectedSlots.length} slot terpilih</span>
+                                        <button 
+                                            onClick={handleDeleteBatch}
+                                            className="text-xs font-bold bg-destructive text-destructive-foreground px-3 py-1 rounded-md hover:bg-destructive/90"
+                                        >
+                                            Hapus Terpilih
+                                        </button>
+                                    </div>
+                                )}
+                                <div className="relative overflow-x-auto rounded-lg border border-border">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="text-xs uppercase bg-muted text-muted-foreground">
+                                            <tr>
+                                                <th className="px-4 py-3 w-10">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="rounded border-input text-primary focus:ring-primary"
+                                                        onChange={handleSelectAll}
+                                                        checked={slots.filter(s => s.can_delete).length > 0 && selectedSlots.length === slots.filter(s => s.can_delete).length}
+                                                        disabled={slots.filter(s => s.can_delete).length === 0}
+                                                    />
+                                                </th>
+                                                <th className="px-4 py-3 font-medium">Waktu</th>
+                                                <th className="px-4 py-3 font-medium">Status</th>
+                                                <th className="px-4 py-3 font-medium text-right">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border">
                                         {slots.map((slot) => (
                                             <tr key={slot.id} className="hover:bg-muted/50">
+                                                <td className="px-4 py-3">
+                                                    <input 
+                                                        type="checkbox"
+                                                        className="rounded border-input text-primary focus:ring-primary disabled:opacity-50"
+                                                        checked={selectedSlots.includes(slot.id)}
+                                                        onChange={() => toggleSelect(slot.id)}
+                                                        disabled={!slot.can_delete}
+                                                    />
+                                                </td>
                                                 <td className="px-4 py-3 font-medium">
                                                     {slot.jam_mulai} - {slot.jam_selesai}
                                                 </td>
@@ -289,6 +355,7 @@ export default function GenerateSlot({ dokters }: { dokters: Dokter[] }) {
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
                         ) : null}
                     </div>
                 </div>

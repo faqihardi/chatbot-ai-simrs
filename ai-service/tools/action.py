@@ -72,7 +72,7 @@ def get_available_doctors(poli: str, tanggal: str = None) -> str:
               AND NOT EXISTS (
                   SELECT 1 FROM booking b
                   WHERE b.slot_id = js.id
-                    AND b.status = 'terjadwal'
+                    AND b.status IN ('terjadwal', 'selesai')
               )
         """
         

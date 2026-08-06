@@ -58,6 +58,7 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('/superadmin/jadwal-slot/generate', [GenerateSlotController::class, 'index'])->name('superadmin.jadwal.generate');
     Route::get('/superadmin/jadwal-slot/fetch', [GenerateSlotController::class, 'fetch'])->name('superadmin.jadwal.fetch');
     Route::post('/superadmin/jadwal-slot/generate', [GenerateSlotController::class, 'store'])->name('superadmin.jadwal.store');
+    Route::delete('/superadmin/jadwal-slot/batch', [GenerateSlotController::class, 'destroyBatch'])->name('superadmin.jadwal.destroyBatch');
     Route::delete('/superadmin/jadwal-slot/{id}', [GenerateSlotController::class, 'destroy'])->name('superadmin.jadwal.destroy');
 
     // Monitor Layanan
@@ -71,8 +72,8 @@ Route::get('/api/chat/session/data', [ChatController::class, 'getSessionData']);
 Route::post('/api/chat/message', [ChatController::class, 'sendMessage']);
 
 // UI Draft/Confirm endpoints
-Route::post('/api/chat/booking/draft', [BookingController::class, 'createDraftBooking']);
-Route::post('/api/chat/booking/confirm', [BookingController::class, 'confirmBooking']);
+Route::post('/api/booking/draft', [BookingController::class, 'createDraftBooking']);
+Route::post('/api/booking/confirm', [BookingController::class, 'confirmBooking']);
 
 // Internal AI endpoints (bypasses CSRF, protected by other means usually)
 Route::post('/api/internal/jadwal', [JadwalController::class, 'internalGetSchedules']);

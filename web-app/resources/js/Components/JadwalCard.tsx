@@ -26,9 +26,10 @@ interface BookingSuccessData {
     nomor_antrean: string | null;
     nama_pasien: string;
     tipe_pasien: string;
-    dokter: string;
-    poli: string;
-    jadwal: string;
+    dokter_nama: string;
+    poli_nama: string;
+    tanggal: string;
+    jam: string;
 }
 
 interface JadwalCardProps {
@@ -113,9 +114,10 @@ export default function JadwalCard({ data, tokenSesi, onBookingSuccess }: Jadwal
                     nomor_antrean: response.data.nomor_antrean,
                     nama_pasien: namaPasien,
                     tipe_pasien: jenisPembayaran,
-                    dokter: selectedSlot?.dokter_nama || '',
-                    poli: data.poli,
-                    jadwal: `${selectedSlot?.tanggal} ${selectedSlot?.jam_mulai.substring(0, 5)}`
+                    dokter_nama: selectedSlot?.dokter_nama || '',
+                    poli_nama: data.poli,
+                    tanggal: selectedSlot?.tanggal || '',
+                    jam: selectedSlot?.jam_mulai.substring(0, 5) || ''
                 });
             } else {
                 setError(response.data.message || 'Gagal mengonfirmasi pendaftaran.');
@@ -134,35 +136,47 @@ export default function JadwalCard({ data, tokenSesi, onBookingSuccess }: Jadwal
                 <Stethoscope className="h-4 w-4" /> Jadwal Dokter Tersedia - Poli {data.poli}
             </h3>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {data.slots.map((slot) => (
-                    <Card key={slot.slot_id} className="hover:border-primary transition-all duration-200 shadow-none bg-background">
-                        <CardContent className="p-4 flex flex-col gap-1">
-                            <span className="font-bold text-foreground">{slot.dokter_nama}</span>
-                            <span className="text-xs text-muted-foreground">{slot.spesialisasi}</span>
-                            
-                            <div className="flex gap-4 my-2 text-xs">
-                                <div className="flex items-center gap-1 text-muted-foreground">
-                                    <CalendarDays className="h-3 w-3" />
-                                    <span>{slot.tanggal}</span>
-                                </div>
-                                <div className="flex items-center gap-1 text-muted-foreground">
-                                    <Clock className="h-3 w-3" />
-                                    <span>{slot.jam_mulai.substring(0, 5)} - {slot.jam_selesai.substring(0, 5)}</span>
-                                </div>
-                            </div>
+            {Array.isArray(data.slots) && data.slots.filter(slot => new Date(`${slot.tanggal}T${slot.jam_mulai}`) >= new Date()).length === 0 ? (
+                <div className="p-4 my-4 border-2 border-dashed border-border rounded-lg text-center text-muted-foreground text-sm">
+                    Semua jadwal dokter untuk hari ini sudah terlewat waktu praktiknya.
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {Array.isArray(data.slots) && data.slots.filter(slot => new Date(`${slot.tanggal}T${slot.jam_mulai}`) >= new Date()).map((slot) => {
+                        const isExpired = false;
 
-                            <Button 
-                                size="sm" 
-                                className="w-full mt-2" 
-                                onClick={() => handleOpen(slot)}
-                            >
-                                Pilih Slot
-                            </Button>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+                        return (
+                            <Card key={slot.slot_id} className={`transition-all duration-200 shadow-none bg-background hover:border-primary`}>
+                            <CardContent className="p-4 flex flex-col gap-1">
+                                <span className="font-bold text-foreground">{slot.dokter_nama}</span>
+                                <span className="text-xs text-muted-foreground">{slot.spesialisasi}</span>
+                                
+                                <div className="flex gap-4 my-2 text-xs">
+                                    <div className="flex items-center gap-1 text-muted-foreground">
+                                        <CalendarDays className="h-3 w-3" />
+                                        <span>{slot.tanggal}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-muted-foreground">
+                                        <Clock className="h-3 w-3" />
+                                        <span>{slot.jam_mulai.substring(0, 5)} - {slot.jam_selesai.substring(0, 5)}</span>
+                                    </div>
+                                </div>
+
+                                <Button 
+                                    size="sm" 
+                                    className="w-full mt-2" 
+                                    onClick={() => handleOpen(slot)}
+                                    disabled={isExpired}
+                                    variant={isExpired ? "secondary" : "default"}
+                                >
+                                    {isExpired ? 'Kedaluwarsa' : 'Pilih Slot'}
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
+                </div>
+            )}
 
             {open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

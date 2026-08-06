@@ -96,7 +96,11 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
             log_interaksi_gagal(req.session_id, req.message, "intent_tidak_jelas", None)
             
         result = {"reply": str(final_message)}
-        set_cache(prompt_hash, result)
+        
+        # JANGAN cache jawaban yang mengandung data dinamis dari database
+        if not any(tag in str(final_message) for tag in ["<JadwalData>", "<BookingSuccess>", "<AppointmentsList>", "<ComplaintStatus>", "<ComplaintsList>"]):
+            set_cache(prompt_hash, result)
+            
         return result
     except Exception as e:
         durasi_ms = int((time.time() - start_time) * 1000)
@@ -109,7 +113,7 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
             return {"reply": "Sistem sedang sibuk, coba lagi dalam beberapa menit."}
         else:
             print(f"Error pada chat_endpoint: {e}")
-            return {"reply": "Mohon maaf, sistem sedang mengalami gangguan saat memproses pertanyaan Anda."}
+            return {"reply": f"Mohon maaf, sistem sedang mengalami gangguan saat memproses pertanyaan Anda. [Debug: {error_msg}]"}
 
 @app.get("/")
 def read_root():

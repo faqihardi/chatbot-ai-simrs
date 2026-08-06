@@ -81,4 +81,29 @@ class GenerateSlotController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
+
+    public function destroyBatch(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer'
+        ]);
+
+        $deletedCount = 0;
+        $failedCount = 0;
+
+        foreach ($request->ids as $id) {
+            try {
+                $this->jadwalService->deleteSlotIfNoHistory($id);
+                $deletedCount++;
+            } catch (Exception $e) {
+                $failedCount++;
+            }
+        }
+
+        return response()->json([
+            'success' => true, 
+            'message' => "$deletedCount slot dihapus, $failedCount gagal (karena terkunci)."
+        ]);
+    }
 }
