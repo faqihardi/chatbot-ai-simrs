@@ -4,6 +4,7 @@ import { usePage, Head } from '@inertiajs/react';
 import { Send, Bot, User, Mic, Square, Loader2, CalendarDays, Clock, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -177,6 +178,12 @@ export default function Chat({ embedded = false }: ChatProps) {
                                 <span className="text-muted-foreground">Kategori:</span>
                                 <span>{complaintStatusData.aduan.kategori}</span>
                             </div>
+                            {complaintStatusData.aduan.deskripsi && (
+                                <div className="flex justify-between mb-1">
+                                    <span className="text-muted-foreground">Deskripsi:</span>
+                                    <span className="text-right max-w-[70%]">{complaintStatusData.aduan.deskripsi}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between mb-1">
                                 <span className="text-muted-foreground">Urgensi:</span>
                                 <span>{complaintStatusData.aduan.urgensi}</span>
@@ -191,7 +198,7 @@ export default function Chat({ embedded = false }: ChatProps) {
                     </Card>
                 )}
 
-                {complaintsListData && (
+                {complaintsListData && Array.isArray(complaintsListData.aduans) && complaintsListData.aduans.length > 0 && (
                     <div className="flex flex-col gap-2 mt-2">
                         <span className="text-sm font-bold text-primary">Daftar Riwayat Aduan Anda</span>
                         {Array.isArray(complaintsListData.aduans) && complaintsListData.aduans.map((ad: any, idx: number) => (
@@ -204,7 +211,15 @@ export default function Chat({ embedded = false }: ChatProps) {
                                         </span>
                                     </div>
                                     <span className="block text-muted-foreground">Kategori: {ad.kategori}</span>
+                                    {ad.deskripsi && <span className="block text-muted-foreground">Deskripsi: {ad.deskripsi}</span>}
+                                    {ad.urgensi && <span className="block text-muted-foreground">Urgensi: <span className="capitalize font-medium">{ad.urgensi}</span></span>}
                                     <span className="block text-muted-foreground">Dibuat: {ad.created_at}</span>
+                                    {ad.tanggapan && (
+                                        <div className="mt-2 p-2 bg-muted rounded-md">
+                                            <span className="block font-bold mb-1 text-xs">Tanggapan Petugas:</span>
+                                            <span className="text-xs">{ad.tanggapan}</span>
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         ))}
@@ -216,7 +231,10 @@ export default function Chat({ embedded = false }: ChatProps) {
 
     useEffect(() => {
         const initSession = async () => {
-            let savedToken = localStorage.getItem('simrs_session_token');
+            // Jika user login (staf/admin), SELALU buat sesi baru agar user_id terisi
+            // Jika publik (tidak login), gunakan sesi dari localStorage jika ada
+            const isAuthenticated = !!(auth?.user);
+            let savedToken = isAuthenticated ? null : localStorage.getItem('simrs_session_token');
             if (!savedToken) {
                 try {
                     const response = await axios.post('/api/chat/session');
@@ -277,7 +295,7 @@ export default function Chat({ embedded = false }: ChatProps) {
                 console.error("Failed to parse saved messages", e);
             }
         }
-        
+
         initSession();
     }, []);
 
@@ -316,7 +334,7 @@ export default function Chat({ embedded = false }: ChatProps) {
         }
     };
 
-    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSend();
@@ -361,7 +379,7 @@ export default function Chat({ embedded = false }: ChatProps) {
         <div className={`flex flex-col bg-background ${embedded ? 'h-full w-full' : 'h-screen items-center justify-center p-4 md:p-6'}`}>
             <Head title="Chat" />
             <Card className={`flex flex-col overflow-hidden w-full ${embedded ? 'h-full border-none shadow-none rounded-none' : 'max-w-2xl h-[90vh] shadow-lg border rounded-xl'}`}>
-                
+
                 {!embedded && (
                     <div className="flex items-center justify-between bg-primary p-4 text-primary-foreground">
                         <div className="flex items-center gap-2">
@@ -376,16 +394,18 @@ export default function Chat({ embedded = false }: ChatProps) {
                 <ScrollArea className="flex-1 p-4 bg-muted/20">
                     <div className="flex flex-col gap-4">
                         {messages.map((msg, index) => (
-                            <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`flex items-start gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm ${msg.role === 'user' ? 'bg-secondary text-secondary-foreground' : 'bg-primary text-primary-foreground'}`}>
-                                        {msg.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-                                    </div>
-                                    <div className={`rounded-2xl px-4 py-3 shadow-sm border text-sm ${msg.role === 'user' ? 'bg-primary text-primary-foreground border-transparent rounded-tr-sm' : 'bg-background text-foreground border-border rounded-tl-sm'}`}>
-                                        {renderMessageContent(msg.content)}
+                            msg.content?.trim() ? (
+                                <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`flex items-start gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm ${msg.role === 'user' ? 'bg-secondary text-secondary-foreground' : 'bg-primary text-primary-foreground'}`}>
+                                            {msg.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                                        </div>
+                                        <div className={`rounded-2xl px-4 py-3 shadow-sm border text-sm ${msg.role === 'user' ? 'bg-primary text-primary-foreground border-transparent rounded-tr-sm' : 'bg-background text-foreground border-border rounded-tl-sm'}`}>
+                                            {renderMessageContent(msg.content)}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            ) : null
                         ))}
                         {loading && (
                             <div className="flex justify-start">
@@ -401,13 +421,14 @@ export default function Chat({ embedded = false }: ChatProps) {
 
                 <div className="p-3 bg-background border-t">
                     <div className="flex gap-2 items-center">
-                        <Input
-                            className="flex-1"
-                            placeholder={isRecording ? "Sedang mendengarkan..." : "Ketik pertanyaan Anda..."}
+                        <Textarea
+                            className="flex-1 min-h-[44px] max-h-[150px] resize-none py-3"
+                            placeholder={isRecording ? "Sedang mendengarkan..." : "Ketik pertanyaan Anda"}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyPress}
                             disabled={loading || !token}
+                            rows={1}
                         />
                         <Button
                             variant={isRecording ? "destructive" : "secondary"}

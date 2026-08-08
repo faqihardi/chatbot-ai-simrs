@@ -15,15 +15,14 @@ class MonitorController extends Controller
         // 1. Total Panggilan Hari Ini
         $totalPanggilanHariIni = LogPemakaianApi::whereDate('created_at', Carbon::today())->count();
 
-        // 2. Estimasi Biaya Bulan Ini
-        $estimasiBiayaBulanIni = LogPemakaianApi::whereMonth('created_at', Carbon::now()->month)
-                                    ->whereYear('created_at', Carbon::now()->year)
-                                    ->sum('estimasi_biaya');
+        // 2. Estimasi Biaya (Dihapus)
 
-        // 3. Jumlah Fallback ke OpenAI Bulan Ini
-        $fallbackOpenAiBulanIni = LogPemakaianApi::whereMonth('created_at', Carbon::now()->month)
+
+        // 3. Jumlah Gagal Groq Bulan Ini (token 0)
+        $gagalGroqBulanIni = LogPemakaianApi::whereMonth('created_at', Carbon::now()->month)
                                     ->whereYear('created_at', Carbon::now()->year)
-                                    ->where('provider', 'openai')
+                                    ->where('provider', 'groq')
+                                    ->where('token_input', 0)
                                     ->count();
 
         // 4. Rata-rata Latency
@@ -48,8 +47,7 @@ class MonitorController extends Controller
         return Inertia::render('Superadmin/Monitor', [
             'stats' => [
                 'total_panggilan_hari_ini' => $totalPanggilanHariIni,
-                'estimasi_biaya_bulan_ini' => $estimasiBiayaBulanIni,
-                'fallback_openai_bulan_ini' => $fallbackOpenAiBulanIni,
+                'gagal_groq_bulan_ini' => $gagalGroqBulanIni,
                 'rata_rata_latency' => round($rataRataLatency, 2),
             ],
             'logs' => $logs,

@@ -65,7 +65,6 @@ class SuperadminController extends Controller
                     'terjadwal' => $bookingTerjadwal,
                     'hari_ini' => $bookingHariIni,
                 ],
-                'api_cost' => '$' . number_format((float)LogPemakaianApi::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->sum('estimasi_biaya'), 4),
             ],
             'recentAduans' => $recentAduans,
             'recentBookings' => $recentBookings,

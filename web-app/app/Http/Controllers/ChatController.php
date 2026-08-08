@@ -111,9 +111,12 @@ class ChatController extends Controller
         $formattedAduans = $aduans->map(function ($a) {
             return [
                 'nomor_tiket' => $a->nomor_tiket,
-                'kategori' => $a->kategori,
-                'status' => $a->status->value ?? $a->status,
-                'created_at' => $a->created_at->format('Y-m-d H:i:s'),
+                'kategori'    => $a->kategori,
+                'deskripsi'   => $a->deskripsi,
+                'urgensi'     => $a->urgensi->value ?? $a->urgensi,
+                'status'      => $a->status->value ?? $a->status,
+                'tanggapan'   => $a->tanggapan,
+                'created_at'  => $a->created_at->format('Y-m-d H:i:s'),
             ];
         })->values();
 

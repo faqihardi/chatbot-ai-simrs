@@ -2,38 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AppLayout from '../../../Layouts/AppLayout';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
@@ -68,7 +68,7 @@ interface PaginatedBooking {
 export default function BookingIndex({ bookings, filters }: { bookings: PaginatedBooking, filters: { search?: string, status?: string } }) {
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || 'semua');
-    
+
     // Modal states
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
@@ -106,7 +106,7 @@ export default function BookingIndex({ bookings, filters }: { bookings: Paginate
     };
 
     const getStatusVariant = (status: string) => {
-        switch(status) {
+        switch (status) {
             case 'draft': return 'secondary';
             case 'terjadwal': return 'default';
             case 'selesai': return 'default';
@@ -116,13 +116,13 @@ export default function BookingIndex({ bookings, filters }: { bookings: Paginate
         }
     };
 
-    const formatTime = (timeString: string) => {
+    const formatTime = (timeString?: string | null) => {
         if (!timeString) return '';
         // "08:00:00" -> "08:00"
         return timeString.substring(0, 5);
     };
 
-    const formatDate = (dateString: string) => {
+    const formatDate = (dateString?: string | null) => {
         if (!dateString) return '-';
         return new Date(dateString).toLocaleDateString('id-ID', {
             day: '2-digit', month: 'short', year: 'numeric',
@@ -197,14 +197,14 @@ export default function BookingIndex({ bookings, filters }: { bookings: Paginate
                                             <div className="flex flex-col">
                                                 <span className="font-medium">{row.nama_pasien || '-'}</span>
                                                 <span className="text-xs text-muted-foreground">
-                                                    {row.tipe_pasien === 'baru' ? 'Pasien Baru' : 'Lama'} • {row.tipe_pembayaran}
+                                                    {row.tipe_pasien === 'baru' ? 'Pasien Baru' : 'Lama'} • {row.jenis_pembayaran}
                                                 </span>
                                             </div>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex flex-col">
                                                 <span className="font-medium">{row.slot?.dokter?.poli?.nama}</span>
-                                                <span className="text-sm text-muted-foreground">dr. {row.slot?.dokter?.nama}</span>
+                                                <span className="text-sm text-muted-foreground">{row.slot?.dokter?.nama}</span>
                                             </div>
                                         </TableCell>
                                         <TableCell>
@@ -216,8 +216,8 @@ export default function BookingIndex({ bookings, filters }: { bookings: Paginate
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant={getStatusVariant(row.status)} 
-                                                   className={row.status === 'selesai' ? 'bg-green-500' : ''}>
+                                            <Badge variant={getStatusVariant(row.status)}
+                                                className={row.status === 'selesai' ? 'bg-green-500' : ''}>
                                                 {row.status.toUpperCase()}
                                             </Badge>
                                         </TableCell>
@@ -240,7 +240,7 @@ export default function BookingIndex({ bookings, filters }: { bookings: Paginate
                                 {bookings.links.map((link, idx: number) => {
                                     const isPrevious = link.label.includes('Previous');
                                     const isNext = link.label.includes('Next');
-                                    
+
                                     if (!link.url && (isPrevious || isNext)) {
                                         return null;
                                     }
@@ -248,20 +248,20 @@ export default function BookingIndex({ bookings, filters }: { bookings: Paginate
                                     return (
                                         <PaginationItem key={idx}>
                                             {isPrevious ? (
-                                                <PaginationPrevious 
-                                                    href={link.url || '#'} 
-                                                    onClick={(e) => { if(!link.url) e.preventDefault(); }}
+                                                <PaginationPrevious
+                                                    href={link.url || '#'}
+                                                    onClick={(e) => { if (!link.url) e.preventDefault(); }}
                                                     className={!link.url ? 'pointer-events-none opacity-50' : ''}
                                                 />
                                             ) : isNext ? (
-                                                <PaginationNext 
-                                                    href={link.url || '#'} 
-                                                    onClick={(e) => { if(!link.url) e.preventDefault(); }}
+                                                <PaginationNext
+                                                    href={link.url || '#'}
+                                                    onClick={(e) => { if (!link.url) e.preventDefault(); }}
                                                     className={!link.url ? 'pointer-events-none opacity-50' : ''}
                                                 />
                                             ) : (
-                                                <PaginationLink 
-                                                    href={link.url || '#'} 
+                                                <PaginationLink
+                                                    href={link.url || '#'}
                                                     isActive={link.active}
                                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                                 />
@@ -285,7 +285,7 @@ export default function BookingIndex({ bookings, filters }: { bookings: Paginate
                                 Perbarui status pemesanan jadwal untuk <strong>{editingBooking?.nama_pasien}</strong>.
                             </DialogDescription>
                         </DialogHeader>
-                        
+
                         <div className="grid gap-4 py-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="status">Ubah Status</Label>

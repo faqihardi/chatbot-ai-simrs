@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Booking;
 use App\Models\JadwalSlot;
+use App\Models\Dokter;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use App\Helpers\ContactHelper;
@@ -54,6 +55,9 @@ class BookingService
                 throw new \Exception('Maaf, slot jadwal dokter ini baru saja terisi oleh pasien lain.');
             }
 
+            // LOCK ENTITAS DOKTER UNTUK MENCEGAH RACE CONDITION 
+            Dokter::where('id', $slot->dokter_id)->lockForUpdate()->first();
+
             $countToday = Booking::whereHas('slot', function ($query) use ($slot) {
                     $query->where('dokter_id', $slot->dokter_id)
                           ->where('tanggal', $slot->tanggal);
@@ -95,6 +99,9 @@ class BookingService
 
             $existing = Booking::where('kontak_hash', $kontakHash)->exists();
             $tipePasien = $existing ? 'lama' : 'baru';
+
+            // LOCK ENTITAS DOKTER UNTUK MENCEGAH RACE CONDITION B2 (Nomor Antrean)
+            \App\Models\Dokter::where('id', $slot->dokter_id)->lockForUpdate()->first();
 
             $countToday = Booking::whereHas('slot', function ($query) use ($slot) {
                     $query->where('dokter_id', $slot->dokter_id)

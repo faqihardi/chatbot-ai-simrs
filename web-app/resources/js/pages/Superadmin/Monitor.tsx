@@ -66,8 +66,7 @@ interface PaginationData {
 interface PageProps {
     stats: {
         total_panggilan_hari_ini: number;
-        estimasi_biaya_bulan_ini: number;
-        fallback_openai_bulan_ini: number;
+        gagal_groq_bulan_ini: number;
         rata_rata_latency: number;
     };
     logs: PaginationData;
@@ -103,13 +102,13 @@ export default function Monitor({ stats, logs, filters, auth }: PageProps) {
                 <div>
                     <h2 className="text-2xl font-bold text-foreground">Monitor Layanan AI</h2>
                     <p className="text-muted-foreground text-sm mt-1">
-                        Pantau metrik penggunaan API Gemini/OpenAI dan performa sistem.
+                        Pantau metrik penggunaan API Groq/Gemini dan performa sistem.
                     </p>
                 </div>
             </div>
 
-            {/* 4 Statistik Cards */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+            {/* 3 Statistik Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Panggilan (Hari Ini)</CardTitle>
@@ -122,24 +121,12 @@ export default function Monitor({ stats, logs, filters, auth }: PageProps) {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Estimasi Biaya (Bulan Ini)</CardTitle>
-                        <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            ${stats.estimasi_biaya_bulan_ini ? Number(stats.estimasi_biaya_bulan_ini).toFixed(4) : '0.0000'}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Perkiraan tagihan LLM Provider</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Fallback OpenAI (Bulan Ini)</CardTitle>
+                        <CardTitle className="text-sm font-medium">Gagal API Groq (Bulan Ini)</CardTitle>
                         <Cpu className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.fallback_openai_bulan_ini}</div>
-                        <p className="text-xs text-muted-foreground">Kali sistem gagal menggunakan Gemini</p>
+                        <div className="text-2xl font-bold">{stats.gagal_groq_bulan_ini}</div>
+                        <p className="text-xs text-muted-foreground">Kali sistem gagal terhubung ke Groq API</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -196,13 +183,12 @@ export default function Monitor({ stats, logs, filters, auth }: PageProps) {
                                 <TableHead>Jenis</TableHead>
                                 <TableHead>Tokens (In/Out)</TableHead>
                                 <TableHead>Durasi (ms)</TableHead>
-                                <TableHead>Estimasi Biaya</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {logs.data.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                                         Tidak ada data log pemakaian API.
                                     </TableCell>
                                 </TableRow>
@@ -227,9 +213,6 @@ export default function Monitor({ stats, logs, filters, auth }: PageProps) {
                                             </span>
                                         </TableCell>
                                         <TableCell>{log.durasi_ms}</TableCell>
-                                        <TableCell>
-                                            {log.estimasi_biaya !== null ? `$${parseFloat(log.estimasi_biaya.toString()).toFixed(5)}` : '-'}
-                                        </TableCell>
                                     </TableRow>
                                 ))
                             )}

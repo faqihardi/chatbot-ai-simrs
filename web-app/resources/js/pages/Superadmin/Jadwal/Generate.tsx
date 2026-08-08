@@ -5,12 +5,12 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { CalendarDays, Clock, Trash2, PlusCircle, AlertCircle, CheckCircle } from 'lucide-react';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 
 interface Dokter {
@@ -22,7 +22,7 @@ interface Slot {
     id: number;
     jam_mulai: string;
     jam_selesai: string;
-    status: 'Terjadwal' | 'Kosong';
+    status: string;
     can_delete: boolean;
 }
 
@@ -136,7 +136,7 @@ export default function GenerateSlot({ dokters }: { dokters: Dokter[] }) {
     };
 
     const toggleSelect = (id: number) => {
-        setSelectedSlots(prev => 
+        setSelectedSlots(prev =>
             prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
         );
     };
@@ -287,7 +287,7 @@ export default function GenerateSlot({ dokters }: { dokters: Dokter[] }) {
                                 {selectedSlots.length > 0 && (
                                     <div className="flex items-center justify-between bg-destructive/10 text-destructive px-4 py-2 rounded-md">
                                         <span className="text-sm font-medium">{selectedSlots.length} slot terpilih</span>
-                                        <button 
+                                        <button
                                             onClick={handleDeleteBatch}
                                             className="text-xs font-bold bg-destructive text-destructive-foreground px-3 py-1 rounded-md hover:bg-destructive/90"
                                         >
@@ -300,8 +300,8 @@ export default function GenerateSlot({ dokters }: { dokters: Dokter[] }) {
                                         <thead className="text-xs uppercase bg-muted text-muted-foreground">
                                             <tr>
                                                 <th className="px-4 py-3 w-10">
-                                                    <input 
-                                                        type="checkbox" 
+                                                    <input
+                                                        type="checkbox"
                                                         className="rounded border-input text-primary focus:ring-primary"
                                                         onChange={handleSelectAll}
                                                         checked={slots.filter(s => s.can_delete).length > 0 && selectedSlots.length === slots.filter(s => s.can_delete).length}
@@ -314,48 +314,68 @@ export default function GenerateSlot({ dokters }: { dokters: Dokter[] }) {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-border">
-                                        {slots.map((slot) => (
-                                            <tr key={slot.id} className="hover:bg-muted/50">
-                                                <td className="px-4 py-3">
-                                                    <input 
-                                                        type="checkbox"
-                                                        className="rounded border-input text-primary focus:ring-primary disabled:opacity-50"
-                                                        checked={selectedSlots.includes(slot.id)}
-                                                        onChange={() => toggleSelect(slot.id)}
-                                                        disabled={!slot.can_delete}
-                                                    />
-                                                </td>
-                                                <td className="px-4 py-3 font-medium">
-                                                    {slot.jam_mulai} - {slot.jam_selesai}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${slot.status === 'Terjadwal' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                                        }`}>
-                                                        {slot.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    {slot.can_delete ? (
-                                                        <button
-                                                            onClick={() => confirmDelete(slot.id)}
-                                                            className="text-destructive hover:text-destructive/80 font-medium inline-flex items-center gap-1"
-                                                        >
-                                                            <Trash2 className="size-4" />
-                                                            Hapus
-                                                        </button>
-                                                    ) : (
-                                                        <span className="text-xs text-muted-foreground inline-flex items-center gap-1" title="Slot ini memiliki histori booking">
-                                                            <AlertCircle className="size-3" />
-                                                            Terkunci
-                                                        </span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                            {slots.map((slot) => (
+                                                <tr key={slot.id} className="hover:bg-muted/50">
+                                                    <td className="px-4 py-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="rounded border-input text-primary focus:ring-primary disabled:opacity-50"
+                                                            checked={selectedSlots.includes(slot.id)}
+                                                            onChange={() => toggleSelect(slot.id)}
+                                                            disabled={!slot.can_delete}
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3 font-medium">
+                                                        {slot.jam_mulai} - {slot.jam_selesai}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        {(() => {
+                                                            let displayStatus = slot.status;
+                                                            let badgeClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'; // Kosong
+
+                                                            if (data.tanggal) {
+                                                                const slotDateTime = new Date(`${data.tanggal}T${slot.jam_selesai}`);
+                                                                if (slotDateTime < new Date() && slot.status.toLowerCase() === 'kosong') {
+                                                                    displayStatus = 'Expired';
+                                                                    badgeClass = 'bg-muted text-muted-foreground';
+                                                                }
+                                                            }
+
+                                                            if (displayStatus.toLowerCase() === 'terjadwal') {
+                                                                badgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
+                                                            } else if (displayStatus.toLowerCase() === 'selesai') {
+                                                                badgeClass = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+                                                            }
+
+                                                            return (
+                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${badgeClass}`}>
+                                                                    {displayStatus}
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        {slot.can_delete ? (
+                                                            <button
+                                                                onClick={() => confirmDelete(slot.id)}
+                                                                className="text-destructive hover:text-destructive/80 font-medium inline-flex items-center gap-1"
+                                                            >
+                                                                <Trash2 className="size-4" />
+                                                                Hapus
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-xs text-muted-foreground inline-flex items-center gap-1" title="Slot ini memiliki histori booking">
+                                                                <AlertCircle className="size-3" />
+                                                                Terkunci
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
                         ) : null}
                     </div>
                 </div>
@@ -370,13 +390,13 @@ export default function GenerateSlot({ dokters }: { dokters: Dokter[] }) {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="mt-4">
-                        <button 
+                        <button
                             onClick={() => setDeleteModalOpen(false)}
                             className="px-4 py-2 text-sm font-medium border border-input bg-background rounded-md hover:bg-accent"
                         >
                             Batal
                         </button>
-                        <button 
+                        <button
                             onClick={handleDelete}
                             className="px-4 py-2 text-sm font-medium bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90"
                         >

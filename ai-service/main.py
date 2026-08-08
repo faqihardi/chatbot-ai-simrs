@@ -35,7 +35,7 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
     current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     role_instruction = f"PENTING: Anda sedang berinteraksi dengan pengguna berstatus '{req.user_role}'. Waktu dan Tanggal saat ini adalah {current_time}."
     if req.user_role == "staf":
-        role_instruction += " Saat menggunakan submit_complaint_tool, set submitter_type='staf'. Anda TIDAK PERLU menanyakan kontak staf."
+        role_instruction += " Saat pengguna ingin membuat aduan, Anda TETAP HARUS menanyakan: Kategori, Deskripsi/keluhan, Lokasi, dan Urgensi terlebih dahulu sebelum memanggil submit_complaint_tool. Yang TIDAK perlu ditanyakan hanya kontak — set submitter_type='staf' secara otomatis."
     else:
         role_instruction += " Saat menggunakan submit_complaint_tool, set submitter_type='publik'. Anda bisa menanyakan kontak opsional."
 
@@ -54,7 +54,11 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
     inputs = {"messages": formatted_messages}
     config = {"configurable": {"thread_id": req.session_id}}
     
-    # Hash for cache (exclude time to ensure cache hits)
+    # Keywords yang mengindikasikan query ke database - JANGAN cache
+    DB_QUERY_KEYWORDS = ["tiket", "nomor", "kontak", "hp", "aduan", "cek", "status", "riwayat", "booking", "janji"]
+    is_db_query = any(kw in req.message.lower() for kw in DB_QUERY_KEYWORDS)
+    
+    # Hash for cache
     cache_payload = {
         "message": req.message,
         "history": req.history,
@@ -62,15 +66,19 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
     }
     prompt_hash = hashlib.sha256(json.dumps(cache_payload, sort_keys=True).encode('utf-8')).hexdigest()
     
-    cached_resp = get_cache(prompt_hash)
-    if cached_resp:
-        return cached_resp
+    if not is_db_query:
+        cached_resp = get_cache(prompt_hash)
+        if cached_resp:
+            return cached_resp
     
     import time
     from telemetry import log_interaksi_gagal, log_pemakaian_api
     
     start_time = time.time()
     try:
+        from agent_setup import current_session_id
+        current_session_id.set(req.session_id)
+        
         # Eksekusi agent
         response = agent_executor.invoke(inputs, config=config)
         durasi_ms = int((time.time() - start_time) * 1000)
@@ -78,6 +86,11 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
         final_message = response["messages"][-1].content
         if isinstance(final_message, list):
             final_message = " ".join([m.get("text", "") for m in final_message if isinstance(m, dict) and "text" in m])
+        
+        # Guard: jika konten kosong (bisa terjadi saat fallback ke 8B)
+        final_message = str(final_message).strip()
+        if not final_message:
+            return {"reply": "Maaf, sistem sedang dalam kapasitas terbatas. Silakan coba lagi dalam beberapa saat."}
             
         # Log Token Usage (Gemini default)
         ai_msg = response["messages"][-1]
@@ -89,22 +102,24 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
         log_pemakaian_api("groq", "llama-hybrid", "chat", token_in, token_out, 0.0, durasi_ms)
         
         # Deteksi Log Gagal jika jawaban bot buntu
-        resp_lower = str(final_message).lower()
+        resp_lower = final_message.lower()
         if resp_lower.startswith("maaf, informasi tidak ditemukan:"):
             log_interaksi_gagal(req.session_id, req.message, "dokumen_tidak_ditemukan", None)
         elif "kurang mengerti" in resp_lower or "bisa diperjelas" in resp_lower:
             log_interaksi_gagal(req.session_id, req.message, "intent_tidak_jelas", None)
             
-        result = {"reply": str(final_message)}
+        result = {"reply": final_message}
         
         # JANGAN cache jawaban yang mengandung data dinamis dari database
-        if not any(tag in str(final_message) for tag in ["<JadwalData>", "<BookingSuccess>", "<AppointmentsList>", "<ComplaintStatus>", "<ComplaintsList>"]):
+        # JANGAN cache jawaban gagal/tidak ditemukan agar tidak menghalangi dokumen baru
+        is_failed_answer = "informasi tidak ditemukan" in resp_lower or "tidak tersedia di basis pengetahuan" in resp_lower
+        if not is_db_query and not is_failed_answer and not any(tag in final_message for tag in ["<JadwalData>", "<BookingSuccess>", "<AppointmentsList>", "<ComplaintStatus>", "<ComplaintsList>"]):
             set_cache(prompt_hash, result)
             
         return result
     except Exception as e:
         durasi_ms = int((time.time() - start_time) * 1000)
-        log_pemakaian_api("gemini", "gemini-hybrid", "chat", 0, 0, 0.0, durasi_ms)
+        log_pemakaian_api("groq", "llama-hybrid", "chat", 0, 0, 0.0, durasi_ms)
         log_interaksi_gagal(req.session_id, req.message, "tool_error", None)
         
         error_msg = str(e)

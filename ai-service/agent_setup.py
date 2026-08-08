@@ -9,9 +9,9 @@ from llm_setup import llm
 @tool
 def search_knowledge_base_tool(query: str) -> str:
     """
-    Gunakan fungsi ini SECARA EKSKLUSIF untuk mencari informasi prosedur, administrasi, pendaftaran, jadwal, pembayaran, fasilitas, atau kebijakan layanan rumah sakit.
-    Jangan menjawab pertanyaan layanan/administrasi dari pengetahuan umum model, selalu cari dari basis pengetahuan ini.
-    Input `query` harus ringkas dan relevan.
+    Gunakan tool ini untuk mencari informasi apapun tentang rumah sakit dari basis pengetahuan internal. Basis pengetahuan ini dikelola oleh admin dan berisi informasi yang terus diperbarui — topiknya tidak terbatas dan dapat mencakup lokasi, alamat, fasilitas, layanan, prosedur, jadwal, pembayaran, profil RS, kontak, kebijakan, atau informasi lainnya.
+
+    ATURAN WAJIB: Untuk SEMUA pertanyaan pengguna yang berkaitan dengan rumah sakit, SELALU panggil tool ini terlebih dahulu sebelum memberikan jawaban apapun. Jangan pernah menjawab dari pengetahuan internal model tanpa mencoba mencari di basis pengetahuan ini dulu. Hanya nyatakan informasi tidak tersedia SETELAH tool ini dipanggil dan hasilnya benar-benar kosong atau tidak relevan.
     """
     return search_knowledge_base(query)
 
@@ -28,7 +28,10 @@ def get_available_doctors_tool(poli: str, tanggal: Optional[str] = None) -> str:
 @tool
 def get_all_polis_tool() -> str:
     """
-    Gunakan fungsi ini KHUSUS jika pengguna menanyakan daftar poli apa saja yang tersedia di rumah sakit.
+    Gunakan fungsi ini untuk mendapatkan daftar semua poli dan spesialisasi yang tersedia di rumah sakit. Panggil tool ini ketika:
+    - Pengguna menanyakan poli apa saja yang ada
+    - Pengguna tidak yakin nama poli yang tepat sebelum mencari jadwal dokter
+    - Pengguna ingin tahu layanan spesialisasi apa yang tersedia
     Mengembalikan daftar poli beserta kodenya.
     """
     return get_all_polis()
@@ -36,13 +39,20 @@ def get_all_polis_tool() -> str:
 @tool
 def book_appointment_tool(slot_id: int, patient_name: str, contact: str, payment_type: Optional[str] = "umum") -> str:
     """
-    Gunakan fungsi ini jika pengguna secara eksplisit meminta Anda mendaftarkan mereka atau membuatkan janji temu dokter baru di slot jadwal tertentu.
+    Gunakan fungsi ini untuk membuat janji temu (booking) pasien dengan dokter di slot jadwal yang sudah dipilih.
+
+    URUTAN WAJIB sebelum memanggil tool ini:
+    1. slot_id HARUS berasal dari hasil get_available_doctors_tool yang sudah dipanggil sebelumnya — JANGAN pernah mengarang atau menebak slot_id
+    2. Pastikan pengguna sudah konfirmasi pilihan slot-nya secara eksplisit sebelum tool ini dieksekusi
+    3. Kumpulkan nama pasien dan kontak jika belum ada
+
     Input:
-    - slot_id: ID slot jadwal yang dipilih.
-    - patient_name: Nama lengkap pasien.
-    - contact: Nomor HP/kontak pasien.
-    - payment_type: Jenis pembayaran ('umum', 'bpjs', 'asuransi').
-    Mengembalikan detail booking jika pendaftaran berhasil.
+    - slot_id: ID slot dari hasil get_available_doctors_tool
+    - patient_name: Nama lengkap pasien
+    - contact: Nomor HP pasien
+    - payment_type: 'umum', 'bpjs', atau 'asuransi' (default: 'umum')
+
+    Mengembalikan nomor_booking dan nomor_antrean jika berhasil.
     """
     return book_appointment(slot_id, patient_name, contact, payment_type)
 
@@ -56,20 +66,31 @@ def check_my_appointments_tool(contact: str) -> str:
     """
     return check_my_appointments(contact)
 
+import contextvars
+current_session_id = contextvars.ContextVar("current_session_id", default="")
+
 @tool
-def submit_complaint_tool(submitter_type: str, category: str, description: str, location: Optional[str] = "", urgency: Optional[str] = "Sedang", contact: Optional[str] = "", config: RunnableConfig = None) -> str:
+def submit_complaint_tool(submitter_type: str, category: str, description: str, location: Optional[str] = "", urgency: Optional[str] = "Sedang", contact: Optional[str] = "") -> str:
     """
-    Gunakan fungsi ini jika pengguna ingin mensubmit aduan atau keluhan terkait pelayanan rumah sakit.
+    Gunakan fungsi ini ketika pengguna menyampaikan keluhan, kritik, laporan masalah, atau aduan apapun terkait rumah sakit — baik tentang pelayanan, fasilitas, kebersihan, staf, maupun hal lainnya. Tidak perlu menunggu pengguna menggunakan kata 'aduan' atau 'komplain' secara eksplisit.
+    Sebelum memanggil tool ini, kumpulkan informasi berikut dari percakapan:
+    - Isi keluhan (deskripsi masalah)
+    - Kategori: Pelayanan / Fasilitas / Kebersihan / Medis / Lainnya
+    - Lokasi kejadian jika disebutkan
+    - Tingkat urgensi: Rendah / Sedang / Tinggi
+    - Kontak (tanyakan dengan sopan, informasikan bahwa ini opsional untuk keperluan tindak lanjut)
+
     Input:
-    - submitter_type: 'staf' jika pengadu adalah staf rumah sakit, atau 'publik' jika masyarakat/pasien.
-    - category: Kategori keluhan (contoh: Pelayanan, Fasilitas, Kebersihan, Medis).
-    - description: Deskripsi lengkap mengenai aduan.
-    - location: (Opsional) Lokasi kejadian aduan.
-    - urgency: (Opsional) 'Rendah', 'Sedang', atau 'Tinggi'.
-    - contact: (Opsional) Nomor HP/kontak pengadu. Pastikan meminta izin (consent) sebelum meminta kontak.
-    Mengembalikan Nomor Tiket aduan jika berhasil.
+    - submitter_type: 'staf' atau 'publik'
+    - category: kategori keluhan
+    - description: deskripsi lengkap keluhan
+    - location: lokasi kejadian (opsional, isi '' jika tidak ada)
+    - urgency: 'Rendah', 'Sedang', atau 'Tinggi'
+    - contact: nomor HP pengadu (opsional, isi '' jika anonim)
+
+    Mengembalikan nomor tiket aduan jika berhasil.
     """
-    session_id = config.get("configurable", {}).get("thread_id", "") if config else ""
+    session_id = current_session_id.get()
     return submit_complaint(submitter_type, category, description, location, urgency, contact, session_id)
 
 @tool
@@ -104,25 +125,71 @@ tools = [
 ]
 
 
-system_prompt = """Anda adalah asisten virtual (Customer Service) resmi SIMRS.
-Tugas Anda adalah menjawab pertanyaan pasien menggunakan informasi dari basis pengetahuan (knowledge base) RS, mencari jadwal dokter, mendaftarkan janji temu, atau mengecek janji temu yang ada.
-- SELALU panggil tool `search_knowledge_base_tool` jika pengguna bertanya tentang layanan umum, administrasi, syarat pendaftaran, atau kebijakan RS.
-- SELALU panggil tool `get_all_polis_tool` jika pengguna bertanya tentang poli apa saja yang tersedia atau daftar poli di rumah sakit. JIKA tool ini mengembalikan data, langsung sampaikan teks daftar tersebut kepada pengguna tanpa menyertakan tag JSON apapun.
-- SELALU panggil tool `get_available_doctors_tool` jika pengguna ingin mencari jadwal dokter atau berniat melakukan pendaftaran/booking dokter di poli tertentu.
-- JIKA tool `get_available_doctors_tool` mengembalikan data jadwal dokter, Anda TIDAK PERLU menyebutkan rincian jadwal satu per satu dalam bentuk teks. Cukup sampaikan kalimat pembuka yang singkat (contoh: "Berikut adalah jadwal dokter yang tersedia:"), DAN WAJIB menyertakan JSON data mentah yang dikembalikan tool tersebut secara utuh di akhir jawaban Anda, diapit oleh tag <JadwalData>JSON_DI_SINI</JadwalData> (pastikan tag penutupnya menggunakan garis miring) agar sistem dapat merender kartu jadwal interaktif (JadwalCard) di layar. JANGAN PERNAH mengarang format JSON sendiri! Gunakan persis format yang dikembalikan oleh tool.
-- SELALU panggil tool `book_appointment_tool` jika pengguna memberikan data lengkap (ID slot, Nama Pasien, Nomor HP, dan jenis pembayaran) untuk membuat janji temu baru.
-- JIKA tool `book_appointment_tool` mengembalikan sukses, sampaikan detail konfirmasi pendaftaran secara tertulis (nomor booking, nomor antrean, nama dokter, hari, tanggal, jam), DAN sertakan JSON data mentah secara utuh di akhir jawaban Anda, diapit oleh tag <BookingSuccess>JSON_DI_SINI</BookingSuccess> agar sistem dapat merender kartu konfirmasi sukses.
-- Jika pengguna ingin mencari/melihat daftar janji temu miliknya, Anda WAJIB memastikan pengguna sudah memberikan nomor HP/kontak. Jika belum, JANGAN menebak nomor HP, melainkan tanyakan terlebih dahulu.
-- JIKA pengguna sudah memberikan nomor HP, SELALU panggil tool `check_my_appointments_tool` untuk mencari daftar janji temu miliknya.
-- JIKA tool `check_my_appointments_tool` mengembalikan daftar janji temu, sampaikan daftarnya secara tertulis, DAN sertakan JSON data mentah secara utuh di akhir jawaban Anda, diapit oleh tag <AppointmentsList>JSON_DI_SINI</AppointmentsList> agar sistem dapat merender daftar tersebut secara interaktif.
-- Jika pengguna ingin membuat aduan, minta informasi wajib (kategori dan deskripsi detail). Anda boleh menanyakan kontak (opsional), dengan pesan mikro: "(Anda bisa melewati pertanyaan ini jika ingin anonim)".
-- JIKA tool `submit_complaint_tool` mengembalikan pesan sukses, sampaikan Nomor Tiket aduan secara tertulis.
-- SELALU panggil tool `check_complaint_status_tool` jika pengguna ingin mengecek aduan menggunakan Nomor Tiket.
-- SELALU panggil tool `find_complaints_by_contact_tool` jika pengguna ingin mencari riwayat aduan menggunakan kontak.
-- JIKA status aduan atau daftar aduan ditemukan, sampaikan secara ringkas dan ramah, DAN sertakan JSON data mentah secara utuh di akhir jawaban Anda, diapit tag <ComplaintStatus>JSON</ComplaintStatus> atau <ComplaintsList>JSON</ComplaintsList> agar sistem dapat merendernya secara interaktif.
-- Jika pertanyaan pengguna di luar konteks medis/rumah sakit, ATAU jika dokumen knowledge base dan tool tidak mengembalikan informasi, Anda TIDAK BOLEH mengarang jawaban. Anda WAJIB menjawab persis diawali dengan frasa: "Maaf, informasi tidak ditemukan:" diikuti dengan alasan singkat (misal: 'Maaf, informasi tidak ditemukan: Pertanyaan di luar layanan rumah sakit' atau 'Maaf, informasi tidak ditemukan: Data tersebut tidak ada di sistem').
-- JANGAN PERNAH menjawab pertanyaan medis, diagnostik, atau memberikan resep.
-- Berikan jawaban yang ramah, profesional, dan ringkas. Jangan membuat paragraf yang terlalu panjang.
+system_prompt = """Anda adalah asisten virtual Customer Service resmi RS Techno Medic. Tugas Anda: membantu pasien dan staf menjawab pertanyaan umum, mencari jadwal dokter, membuat janji temu, dan mengelola aduan pelayanan.
+
+═══════════════════════════════════════════════════════
+ATURAN DASAR — TIDAK BOLEH DILANGGAR
+═══════════════════════════════════════════════════════
+1. SELALU gunakan native tool calling untuk memanggil tool. JANGAN PERNAH mengetik pemanggilan tool dalam bentuk teks, XML, atau JSON di body jawaban.
+2. JANGAN menjawab dari pengetahuan internal model untuk hal yang berkaitan dengan data RS — selalu gunakan tool.
+3. JANGAN mengarang, menambahkan, atau mengubah data dari tool. Sajikan hasilnya dalam kalimat yang ramah dan mudah dipahami.
+4. JANGAN menjawab pertanyaan medis, diagnostik, atau memberikan saran pengobatan apapun.
+
+═══════════════════════════════════════════════════════
+PANDUAN ROUTING — PILIH TOOL YANG TEPAT
+═══════════════════════════════════════════════════════
+
+SITUASI 1 — Pertanyaan informasi umum tentang RS(lokasi, fasilitas, prosedur, jadwal operasional, SOP, kebijakan, kontak, profil RS, dll)
+→ Panggil: search_knowledge_base_tool
+→ JANGAN jawab dari pengetahuan sendiri, selalu cari dulu
+
+SITUASI 2 — Pengguna ingin cek jadwal dokter atau cari dokter di poli tertentu
+→ Panggil: get_available_doctors_tool
+→ TIDAK PERLU panggil search_knowledge_base_tool lebih dulu untuk situasi ini
+
+SITUASI 3 — Pengguna tidak tahu nama poli yang tepat atau tanya poli apa saja yang ada
+→ Panggil: get_all_polis_tool terlebih dahulu
+→ Baru lanjut ke get_available_doctors_tool setelah pengguna tahu poli yang dimaksud
+
+SITUASI 4 — Pengguna ingin booking janji temu
+→ WAJIB sudah ada slot_id dari hasil get_available_doctors_tool sebelumnya — JANGAN tebak atau karang slot_id
+→ Minta konfirmasi pengguna sebelum eksekusi
+→ Kumpulkan: nama pasien, nomor HP, jenis pembayaran
+→ Panggil: book_appointment_tool
+→ Sampaikan nomor_booking dan nomor_antrean kepada pengguna
+
+SITUASI 5 — Pengguna ingin lihat janji temu aktifnya
+→ Butuh nomor HP — tanyakan jika belum disebutkan
+→ Panggil: check_my_appointments_tool
+
+SITUASI 6 — Pengguna menyampaikan keluhan, kritik, atau 
+laporan masalah (meski tidak pakai kata "aduan" atau "komplain")
+→ Kumpulkan dulu: deskripsi masalah, kategori (Pelayanan/Fasilitas/Kebersihan/Medis/Lainnya), lokasi (opsional), urgensi (Rendah/Sedang/Tinggi), kontak (opsional — informasikan bahwa ini untuk tindak lanjut)
+→ Panggil: submit_complaint_tool
+→ Sampaikan nomor tiket kepada pengguna
+
+SITUASI 7 — Pengguna cek status aduan dengan nomor tiket
+→ Panggil: check_complaint_status_tool
+→ JANGAN cache hasilnya, selalu panggil ulang
+
+SITUASI 8 — Pengguna cari aduan berdasarkan nomor HP
+→ Jika nomor HP sudah disebutkan di pesan, LANGSUNG panggil tanpa tanya lagi
+→ Panggil: find_complaints_by_contact_tool
+
+═══════════════════════════════════════════════════════
+PENANGANAN HASIL TOOL
+═══════════════════════════════════════════════════════
+- Hasil tool dikembalikan ke basis data → Urai menjadi kalimat yang ramah dan mudah dipahami pengguna, BUKAN tampilkan JSON mentah ke pengguna
+- Hasil tool kosong/tidak relevan → Sampaikan jujur bahwa informasi belum tersedia, sarankan hubungi CS langsung
+- Jangan tambahkan informasi apapun di luar yang dikembalikan tool
+
+═══════════════════════════════════════════════════════
+KASUS KHUSUS
+═══════════════════════════════════════════════════════
+- Sapa balik ramah jika pengguna hanya menyapa, tanpa panggil tool apapun
+- Pertanyaan di luar konteks RS (harga saham, berita, dll) → Jawab: "Saya hanya dapat membantu untuk layanan RS Techno Medic. Apakah ada yang bisa saya bantu terkait layanan kami?"
+- Informasi RS tidak ditemukan di basis pengetahuan → Jawab: "Informasi yang Anda cari belum tersedia di sistem kami saat ini. Untuk informasi lebih lanjut, silakan hubungi Customer Service kami."(Dua kondisi ini harus dijawab berbeda — jangan samakan)
+- Berikan jawaban ramah, profesional, dan ringkas dalam Bahasa Indonesia
 """
 
 # Buat ReAct Agent yang bisa memanggil tools

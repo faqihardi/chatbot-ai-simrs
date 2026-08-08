@@ -33,7 +33,7 @@ interface Aduan {
     id: number;
     nomor_tiket: string;
     kategori: string;
-    tingkat_urgensi: string | null;
+    urgensi: string | null;
     status: string;
     tanggapan: string | null;
     deskripsi: string;
@@ -119,30 +119,42 @@ export default function RiwayatAduan({ aduans, filters }: { aduans: PaginatedAdu
                     <Table>
                         <TableHeader className="bg-muted/50">
                             <TableRow>
-                                <TableHead className="font-bold">No. Tiket</TableHead>
-                                <TableHead className="font-bold">Kategori</TableHead>
-                                <TableHead className="font-bold">Status</TableHead>
-                                <TableHead className="font-bold">Tanggal</TableHead>
+                                <TableHead className="font-bold w-[130px]">No. Tiket</TableHead>
+                                <TableHead className="font-bold w-[110px]">Kategori</TableHead>
+                                <TableHead className="font-bold">Deskripsi &amp; Tanggapan</TableHead>
+                                <TableHead className="font-bold w-[100px]">Status</TableHead>
+                                <TableHead className="font-bold w-[110px]">Tanggal</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {aduans.data.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                                         Belum ada riwayat aduan.
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 aduans.data.map((row: Aduan) => (
-                                    <TableRow key={row.id}>
-                                        <TableCell className="font-medium">{row.nomor_tiket}</TableCell>
-                                        <TableCell>{row.kategori}</TableCell>
+                                    <TableRow key={row.id} className="align-top">
+                                        <TableCell className="font-medium font-mono text-xs pt-3">{row.nomor_tiket}</TableCell>
+                                        <TableCell className="pt-3">{row.kategori}</TableCell>
                                         <TableCell>
+                                            <p className="text-sm" title={row.deskripsi}>
+                                                {row.deskripsi}
+                                            </p>
+                                            {row.tanggapan && (
+                                                <div className="mt-2 p-2 bg-muted rounded-md">
+                                                    <p className="text-xs font-semibold text-muted-foreground mb-1">Tanggapan Petugas:</p>
+                                                    <p className="text-xs">{row.tanggapan}</p>
+                                                </div>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="pt-3">
                                             <Badge variant={getStatusVariant(row.status) as any} className={getStatusColor(row.status)}>
                                                 {row.status.toUpperCase()}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>{new Date(row.created_at).toLocaleDateString('id-ID', {
+                                        <TableCell className="text-muted-foreground text-xs pt-3 whitespace-nowrap">{new Date(row.created_at).toLocaleDateString('id-ID', {
                                             day: 'numeric', month: 'short', year: 'numeric'
                                         })}</TableCell>
                                     </TableRow>

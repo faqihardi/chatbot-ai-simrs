@@ -27,3 +27,6 @@ yarn-error.log
 /.vscode
 /.zed
 /.github
+test*.py
+check_*.php
+update*.php

@@ -254,7 +254,8 @@ def check_complaint_status(nomor_tiket: str) -> str:
     import json
     
     try:
-        payload = {"nomor_tiket": nomor_tiket}
+        nomor_tiket_clean = nomor_tiket.strip()
+        payload = {"nomor_tiket": nomor_tiket_clean}
         headers = {"Content-Type": "application/json"}
         
         response = requests.post(endpoint, json=payload, headers=headers, timeout=10)
@@ -266,13 +267,13 @@ def check_complaint_status(nomor_tiket: str) -> str:
                 "aduan": aduan
             }, ensure_ascii=False)
         elif response.status_code == 404:
-            return f"Aduan dengan nomor tiket {nomor_tiket} tidak ditemukan."
+            return f"Aduan dengan nomor tiket '{nomor_tiket_clean}' tidak ditemukan dalam sistem. Pastikan nomor tiket sudah benar."
         else:
             return "Gagal memeriksa status aduan."
             
     except Exception as e:
         print(f"Error pada check_complaint_status: {e}")
-        return "Gagal terhubung dengan layanan informasi aduan."
+        return "Terjadi kesalahan saat memeriksa status aduan. Silakan coba lagi."
 
 def find_complaints_by_contact(contact: str) -> str:
     """
@@ -285,7 +286,11 @@ def find_complaints_by_contact(contact: str) -> str:
     import json
     
     try:
-        payload = {"kontak": contact}
+        contact_clean = contact.strip()
+        with open("debug_complaint.log", "a") as f:
+            f.write(f"TOOL CALLED: find_complaints_by_contact with '{contact_clean}'\n")
+            
+        payload = {"kontak": contact_clean}
         headers = {"Content-Type": "application/json"}
         
         response = requests.post(endpoint, json=payload, headers=headers, timeout=10)
@@ -293,14 +298,14 @@ def find_complaints_by_contact(contact: str) -> str:
         if response.status_code == 200:
             aduans = response.json().get("aduans", [])
             if not aduans:
-                return f"Tidak ditemukan aduan untuk kontak {contact}."
+                return f"Tidak ditemukan aduan yang terkait dengan nomor kontak tersebut. Pastikan nomor yang dimasukkan sudah benar."
             return json.dumps({
                 "type": "complaints_list",
                 "aduans": aduans
             }, ensure_ascii=False)
         else:
-            return "Gagal mencari daftar aduan."
+            return "Gagal mengambil data aduan. Silakan coba lagi."
             
     except Exception as e:
         print(f"Error pada find_complaints_by_contact: {e}")
-        return "Gagal terhubung dengan layanan informasi aduan."
+        return "Terjadi kesalahan saat mengambil data aduan. Silakan coba lagi."

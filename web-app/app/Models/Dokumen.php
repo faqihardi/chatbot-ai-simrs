@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Table('dokumen')]
-#[Fillable(['judul','kategori','isi','sumber','aktif','dibuat_oleh','diubah_oleh',])]
+#[Fillable(['judul','kategori','isi','sumber','aktif','versi','checksum','dibuat_oleh','diubah_oleh'])]
 class Dokumen extends Model
 {
     protected function casts(): array

@@ -39,8 +39,8 @@ def set_cache(prompt_hash: str, response_data: dict):
         print(f"Error saving cache: {e}")
 
 # ----------------- LAYER 2: MODEL ROUTING & LAYER 1: BACKOFF -----------------
-intent_model_name = os.getenv("LLM_INTENT_MODEL", "gemini-2.0-flash")
-generation_model_name = os.getenv("LLM_GENERATION_MODEL", "gemini-2.5-flash")
+intent_model_name = os.getenv("LLM_INTENT_MODEL", "llama-3.1-8b-instant")
+generation_model_name = os.getenv("LLM_GENERATION_MODEL", "llama-3.3-70b-versatile")
 
 class HybridLLM(Runnable):
     def __init__(self, intent_llm=None, generation_llm=None):
@@ -73,10 +73,37 @@ class HybridLLM(Runnable):
         
         if has_tool_message:
             print(f"Routing to Generation Model ({self.generation_llm.model})")
-            return self.generation_llm.invoke(input_data, config=config, **kwargs)
+            try:
+                return self.generation_llm.invoke(input_data, config=config, **kwargs)
+            except Exception as e:
+                if "429" in str(e) or "rate_limit" in str(e).lower():
+                    print(f"70B rate limit hit, falling back to 8B intent model")
+                    return self.intent_llm.invoke(input_data, config=config, **kwargs)
+                raise
         else:
-            print(f"Routing to Intent Model ({self.intent_llm.model})")
-            return self.intent_llm.invoke(input_data, config=config, **kwargs)
+            response = self.intent_llm.invoke(input_data, config=config, **kwargs)
+            
+            # FALLBACK LOGIC
+            if messages and hasattr(messages[-1], 'content'):
+                query = messages[-1].content.lower()
+                rs_keywords = ["rs", "rumah", "sakit", "techno", "medic", "lokasi", "alamat", "jadwal", "poli", "dokter", "biaya", "bpjs", "asuransi", "fasilitas", "cara", "letak", "berada"]
+                is_rs_related = any(k in query for k in rs_keywords)
+                
+                tool_calls = getattr(response, 'tool_calls', [])
+                has_search = any(tc.get('name') == 'search_knowledge_base_tool' for tc in tool_calls)
+                
+                if is_rs_related and not has_search and not tool_calls:
+                    print(f"Fallback triggered! Forcing search_knowledge_base_tool for query: {messages[-1].content}")
+                    if not hasattr(response, 'tool_calls'):
+                        response.tool_calls = []
+                    
+                    import uuid
+                    response.tool_calls.append({
+                        'name': 'search_knowledge_base_tool',
+                        'args': {'query': messages[-1].content},
+                        'id': f'call_{uuid.uuid4().hex[:8]}'
+                    })
+            return response
             
     def bind_tools(self, tools, **kwargs):
         return HybridLLM(
@@ -95,9 +122,37 @@ class HybridLLM(Runnable):
         has_tool_message = any(hasattr(m, "type") and m.type == "tool" or isinstance(m, ToolMessage) for m in messages)
         
         if has_tool_message:
-            return await self.generation_llm.ainvoke(input_data, config=config, **kwargs)
+            try:
+                return await self.generation_llm.ainvoke(input_data, config=config, **kwargs)
+            except Exception as e:
+                if "429" in str(e) or "rate_limit" in str(e).lower():
+                    print(f"70B rate limit hit (async), falling back to 8B intent model")
+                    return await self.intent_llm.ainvoke(input_data, config=config, **kwargs)
+                raise
         else:
-            return await self.intent_llm.ainvoke(input_data, config=config, **kwargs)
+            response = await self.intent_llm.ainvoke(input_data, config=config, **kwargs)
+            
+            # FALLBACK LOGIC (async)
+            if messages and hasattr(messages[-1], 'content'):
+                query = messages[-1].content.lower()
+                rs_keywords = ["rs", "rumah", "sakit", "techno", "medic", "lokasi", "alamat", "jadwal", "poli", "dokter", "biaya", "bpjs", "asuransi", "fasilitas", "cara", "letak", "berada"]
+                is_rs_related = any(k in query for k in rs_keywords)
+                
+                tool_calls = getattr(response, 'tool_calls', [])
+                has_search = any(tc.get('name') == 'search_knowledge_base_tool' for tc in tool_calls)
+                
+                if is_rs_related and not has_search and not tool_calls:
+                    print(f"Fallback triggered (async)! Forcing search_knowledge_base_tool for query: {messages[-1].content}")
+                    if not hasattr(response, 'tool_calls'):
+                        response.tool_calls = []
+                    
+                    import uuid
+                    response.tool_calls.append({
+                        'name': 'search_knowledge_base_tool',
+                        'args': {'query': messages[-1].content},
+                        'id': f'call_{uuid.uuid4().hex[:8]}'
+                    })
+            return response
 
 # Initialize LLM
 llm = HybridLLM()

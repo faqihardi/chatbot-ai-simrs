@@ -36,6 +36,6 @@ class RoleMiddleware
         }
 
         // Unauthorized
-        return redirect('/');
+        abort(403, 'Anda tidak memiliki akses ke halaman ini.');
     }
 }

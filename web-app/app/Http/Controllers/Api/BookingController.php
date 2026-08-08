@@ -93,10 +93,10 @@ class BookingController extends Controller
                 'success' => true,
                 'nomor_booking' => $booking->nomor_booking,
                 'nomor_antrean' => $booking->nomor_antrean,
-                'dokter_nama' => $booking->slot->dokter->nama,
-                'poli_nama' => $booking->slot->dokter->poli->nama,
-                'tanggal' => $booking->slot->tanggal,
-                'jam' => substr($booking->slot->jam_mulai, 0, 5) . ' - ' . substr($booking->slot->jam_selesai, 0, 5),
+                'dokter_nama'  => $booking->slot->dokter->nama,
+                'poli_nama'    => $booking->slot->dokter->poli->nama,
+                'tanggal'      => \Carbon\Carbon::parse($booking->slot->tanggal)->locale('id')->translatedFormat('d F Y'),
+                'jam'          => substr($booking->slot->jam_mulai, 0, 5) . ' - ' . substr($booking->slot->jam_selesai, 0, 5),
             ]);
         } catch (\Exception $e) {
             return response()->json([

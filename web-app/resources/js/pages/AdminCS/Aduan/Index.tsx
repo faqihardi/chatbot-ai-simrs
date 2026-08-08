@@ -42,10 +42,10 @@ interface Aduan {
     id: number;
     nomor_tiket: string;
     kategori: string;
-    tingkat_urgensi: string | null;
+    urgensi: string | null;
     status: string;
     tanggapan: string | null;
-    tipe_pengirim: string;
+    tipe_pengadu: string;
     staf_id?: number | null;
     staf?: { name: string, no_hp?: string, departemen?: string };
     deskripsi: string;
@@ -165,6 +165,8 @@ export default function AduanIndex({ aduans, filters }: { aduans: PaginatedAduan
                         <TableHeader className="bg-muted/50">
                             <TableRow>
                                 <TableHead className="font-bold">No. Tiket</TableHead>
+                                <TableHead className="font-bold">Kontak</TableHead>
+                                <TableHead className="font-bold">Deskripsi</TableHead>
                                 <TableHead className="font-bold">Kategori</TableHead>
                                 <TableHead className="font-bold">Tingkat Urgensi</TableHead>
                                 <TableHead className="font-bold">Tanggal</TableHead>
@@ -175,7 +177,7 @@ export default function AduanIndex({ aduans, filters }: { aduans: PaginatedAduan
                         <TableBody>
                             {aduans.data.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                                         Belum ada aduan.
                                     </TableCell>
                                 </TableRow>
@@ -183,10 +185,18 @@ export default function AduanIndex({ aduans, filters }: { aduans: PaginatedAduan
                                 aduans.data.map((row: Aduan) => (
                                     <TableRow key={row.id}>
                                         <TableCell className="font-medium">{row.nomor_tiket}</TableCell>
+                                        <TableCell>
+                                            {row.tipe_pengadu === 'staf' && row.staf
+                                                ? `Staf: ${row.staf.name}`
+                                                : (row.kontak_terenkripsi || 'Anonim')}
+                                        </TableCell>
+                                        <TableCell className="max-w-[200px] truncate" title={row.deskripsi}>
+                                            {row.deskripsi}
+                                        </TableCell>
                                         <TableCell>{row.kategori}</TableCell>
                                         <TableCell>
-                                            {row.tingkat_urgensi ? (
-                                                <Badge variant="outline" className="capitalize">{row.tingkat_urgensi}</Badge>
+                                            {row.urgensi ? (
+                                                <Badge variant="outline" className="capitalize">{row.urgensi}</Badge>
                                             ) : '-'}
                                         </TableCell>
                                         <TableCell className="text-muted-foreground whitespace-nowrap">
@@ -272,14 +282,14 @@ export default function AduanIndex({ aduans, filters }: { aduans: PaginatedAduan
                                 </div>
                                 <div className="grid grid-cols-3 gap-2">
                                     <span className="text-muted-foreground">Urgensi:</span>
-                                    <span className="col-span-2 font-medium capitalize">{editingAduan?.tingkat_urgensi || '-'}</span>
+                                    <span className="col-span-2 font-medium capitalize">{editingAduan?.urgensi || '-'}</span>
                                 </div>
                                 <div className="grid grid-cols-3 gap-2">
                                     <span className="text-muted-foreground">Pengirim:</span>
                                     <span className="col-span-2 font-medium">
-                                        {editingAduan?.tipe_pengirim === 'staf' && editingAduan?.staf
+                                        {editingAduan?.tipe_pengadu === 'staf' && editingAduan?.staf
                                             ? `Staf: ${editingAduan.staf.name}`
-                                            : `Pasien (Kontak: ${editingAduan?.kontak_terenkripsi || 'Anonim'})`}
+                                            : `Publik (Kontak: ${editingAduan?.kontak_terenkripsi || 'Anonim'})`}
                                     </span>
                                 </div>
                                 <div className="grid grid-cols-1 gap-1 pt-2 border-t">

@@ -12,3 +12,5 @@ __pycache__/
 .ruff_cache/
 tmp/
 tmp/llm_cache/
+debug*.py
+test*.py

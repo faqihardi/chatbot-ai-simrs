@@ -60,6 +60,7 @@ class AduanController extends Controller
             'aduan' => [
                 'nomor_tiket' => $aduan->nomor_tiket,
                 'kategori' => $aduan->kategori,
+                'deskripsi' => $aduan->deskripsi,
                 'status' => $aduan->status->value ?? $aduan->status,
                 'tanggapan' => $aduan->tanggapan,
                 'urgensi' => $aduan->urgensi->value ?? $aduan->urgensi,
@@ -80,6 +81,8 @@ class AduanController extends Controller
             return [
                 'nomor_tiket' => $a->nomor_tiket,
                 'kategori' => $a->kategori,
+                'deskripsi' => $a->deskripsi,
+                'urgensi' => $a->urgensi->value ?? $a->urgensi,
                 'status' => $a->status->value ?? $a->status,
                 'created_at' => $a->created_at->format('Y-m-d H:i:s'),
             ];

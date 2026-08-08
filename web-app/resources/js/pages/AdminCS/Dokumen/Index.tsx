@@ -48,6 +48,7 @@ interface Dokumen {
     aktif: boolean;
     versi: number;
     checksum: string;
+    chunks_count?: number;
     created_at: string;
     updated_at: string;
 }
@@ -173,7 +174,6 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: Paginate
             setExtractError(err.response?.data?.error || 'Terjadi kesalahan saat mengekstrak dokumen.');
         } finally {
             setIsExtracting(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
@@ -235,6 +235,8 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: Paginate
                                 <TableHead className="font-bold">Judul</TableHead>
                                 <TableHead className="font-bold">Kategori</TableHead>
                                 <TableHead className="font-bold">Versi</TableHead>
+                                <TableHead className="font-bold text-center">Checksum</TableHead>
+                                <TableHead className="font-bold text-center">Status AI</TableHead>
                                 <TableHead className="font-bold text-center">Aktif</TableHead>
                                 <TableHead className="font-bold text-right">Aksi</TableHead>
                             </TableRow>
@@ -242,7 +244,7 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: Paginate
                         <TableBody>
                             {dokumens.data.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                                         Belum ada dokumen.
                                     </TableCell>
                                 </TableRow>
@@ -254,6 +256,16 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: Paginate
                                         </TableCell>
                                         <TableCell>{row.kategori}</TableCell>
                                         <TableCell>v{row.versi}</TableCell>
+                                        <TableCell className="text-center font-mono text-xs text-muted-foreground" title={row.checksum}>
+                                            {row.checksum ? row.checksum.substring(0, 8) + '...' : '-'}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            {row.chunks_count && row.chunks_count > 0 ? (
+                                                <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50">Selesai ({row.chunks_count} chunk)</Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50">Menunggu</Badge>
+                                            )}
+                                        </TableCell>
                                         <TableCell className="text-center">
                                             {row.aktif ? (
                                                 <Badge variant="default" className="bg-green-500">Ya</Badge>
@@ -372,14 +384,14 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: Paginate
                                 <div className="flex flex-col gap-2 p-4 border rounded-lg bg-muted/30">
                                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                                         <div>
-                                            <p className="font-semibold text-sm">Upload File (Ekstraksi Otomatis)</p>
+                                            <p className="font-semibold text-sm">Upload File</p>
                                             <p className="text-xs text-muted-foreground">Format PDF atau DOCX (Max 5MB).</p>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-1 w-full items-center gap-2 mt-2 sm:mt-0 sm:justify-end">
                                             <Input
                                                 type="file"
                                                 accept=".pdf,.docx"
-                                                className="max-w-[200px]"
+                                                className="w-full sm:max-w-[260px] cursor-pointer"
                                                 ref={fileInputRef}
                                                 onChange={handleFileUpload}
                                                 disabled={isExtracting}

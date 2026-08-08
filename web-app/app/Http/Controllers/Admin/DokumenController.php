@@ -28,7 +28,7 @@ class DokumenController extends Controller
             $query->where('aktif', $request->status === 'aktif');
         }
 
-        $dokumens = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        $dokumens = $query->withCount('chunks')->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
         return Inertia::render('AdminCS/Dokumen/Index', [
             'dokumens' => $dokumens,
@@ -116,9 +116,11 @@ class DokumenController extends Controller
             return response()->json(['error' => 'Format file tidak didukung. Harap unggah PDF atau DOCX yang valid.'], 400);
         }
 
-        // Simpan ke storage sementara lokal
-        $path = $file->storeAs('dokumen-uploads', 'temp_' . time() . '_' . $file->getClientOriginalName(), 'local');
-        $fullPath = storage_path('app/' . $path);
+        // Simpan ke storage sementara lokal dengan nama file yang aman (hindari spasi/karakter aneh)
+        $extension = $file->getClientOriginalExtension();
+        $safeFilename = 'temp_' . time() . '_' . uniqid() . '.' . $extension;
+        $path = $file->storeAs('dokumen-uploads', $safeFilename, 'local');
+        $fullPath = \Illuminate\Support\Facades\Storage::disk('local')->path($path);
 
         $extractedText = '';
 
@@ -133,29 +135,42 @@ class DokumenController extends Controller
                 foreach ($phpWord->getSections() as $section) {
                     foreach ($section->getElements() as $element) {
                         $isHeading = false;
-                        if (method_exists($element, 'getParagraphStyle')) {
-                            $pStyle = $element->getParagraphStyle();
-                            if ($pStyle && method_exists($pStyle, 'getStyleName')) {
-                                $styleName = strtolower((string)$pStyle->getStyleName());
-                                if (strpos($styleName, 'heading') !== false) {
-                                    $isHeading = true;
-                                }
+                        $className = get_class($element);
+                        $styleName = '';
+
+                        if (strpos($className, 'Title') !== false) {
+                            $isHeading = true;
+                        } else {
+                            $pStyle = method_exists($element, 'getParagraphStyle') ? $element->getParagraphStyle() : null;
+                            $style = method_exists($element, 'getStyle') ? $element->getStyle() : null;
+                            
+                            if (is_string($pStyle)) $styleName = $pStyle;
+                            elseif (is_string($style)) $styleName = $style;
+                            elseif ($pStyle && method_exists($pStyle, 'getStyleName')) $styleName = (string)$pStyle->getStyleName();
+                            elseif ($style && method_exists($style, 'getStyleName')) $styleName = (string)$style->getStyleName();
+                            
+                            $styleNameLower = strtolower($styleName);
+                            if (strpos($styleNameLower, 'heading') !== false || strpos($styleNameLower, 'title') !== false || strpos($styleNameLower, 'judul') !== false) {
+                                $isHeading = true;
                             }
                         }
 
                         $prefix = $isHeading ? "\n## " : "";
 
+                        $textContent = "";
                         if (method_exists($element, 'getText')) {
-                            $extractedText .= $prefix . $element->getText() . "\n";
+                            $textContent = $element->getText();
                         } elseif (method_exists($element, 'getElements')) {
-                            // Untuk elemen bersarang seperti TextRun
-                            $extractedText .= $prefix;
                             foreach ($element->getElements() as $childElement) {
                                 if (method_exists($childElement, 'getText')) {
-                                    $extractedText .= $childElement->getText();
+                                    $textContent .= $childElement->getText();
                                 }
                             }
-                            $extractedText .= "\n";
+                        }
+
+                        if (trim($textContent) !== '') {
+                            \Log::info("Element parsed: Class=$className, Style=$styleName, isHeading=" . ($isHeading ? 'true' : 'false') . ", Text=" . substr($textContent, 0, 30));
+                            $extractedText .= $prefix . $textContent . "\n";
                         }
                     }
                 }
