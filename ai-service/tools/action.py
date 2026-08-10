@@ -49,9 +49,17 @@ def get_available_doctors(poli: str, tanggal: str = None) -> str:
     if not DATABASE_URL:
         return "Database belum dikonfigurasi."
 
+    if tanggal:
+        import re
+        if not re.match(r'^\d{4}-\d{2}-\d{2}$', tanggal):
+            return "Error: Format tanggal salah. Harap panggil kembali tool ini dengan format 'YYYY-MM-DD' (contoh: 2026-08-10)."
+
     try:
         conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
         cursor = conn.cursor()
+        
+        # Bersihkan input poli dari kata 'dokter' atau 'poli' agar ILIKE %...% lebih akurat
+        clean_poli = poli.lower().replace('dokter', '').replace('poli', '').replace('klinik', '').strip()
         
         # Query untuk mencari poli berdasarkan kode atau nama (ILIKE)
         # Jika ditemukan, ambil slots dokter yang terjadwal namun belum di-booking (status != 'terjadwal')
@@ -76,7 +84,7 @@ def get_available_doctors(poli: str, tanggal: str = None) -> str:
               )
         """
         
-        params = [f"%{poli}%", poli]
+        params = [f"%{clean_poli}%", poli.upper()]
         
         if tanggal:
             sql += " AND js.tanggal = %s"

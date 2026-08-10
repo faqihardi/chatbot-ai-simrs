@@ -2,9 +2,10 @@ import React from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
 import ChatbotUI from '../Chat';
+import { PageProps } from '@/types';
 
 export default function Chat() {
-    const { auth } = usePage().props as any;
+    const { auth } = usePage<PageProps>().props;
     
     return (
         <AppLayout>

@@ -42,11 +42,14 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
     formatted_messages.append(("system", role_instruction))
 
     # 1. Masukkan riwayat dari Laravel
-    for msg in req.history:
+    import re
+    for msg in req.history[-10:]:  # Batasi maksimal 10 pesan terakhir agar tidak over-token
         role = msg.get("role")
         content = msg.get("content")
         if role in ["user", "assistant"] and content:
-            formatted_messages.append((role, content))
+            # Hapus tag XML UI (seperti <JadwalData>... JSON ...</JadwalData>) dari history untuk menghemat ribuan token
+            clean_content = re.sub(r'<[A-Za-z]+>.*?</[A-Za-z]+>', '[UI Card]', content, flags=re.DOTALL)
+            formatted_messages.append((role, clean_content))
             
     # 2. Masukkan pesan terbaru
     formatted_messages.append(("user", req.message))
@@ -55,7 +58,7 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
     config = {"configurable": {"thread_id": req.session_id}}
     
     # Keywords yang mengindikasikan query ke database - JANGAN cache
-    DB_QUERY_KEYWORDS = ["tiket", "nomor", "kontak", "hp", "aduan", "cek", "status", "riwayat", "booking", "janji"]
+    DB_QUERY_KEYWORDS = ["tiket", "nomor", "kontak", "hp", "aduan", "cek", "status", "riwayat", "booking", "janji", "jadwal", "dokter", "poli"]
     is_db_query = any(kw in req.message.lower() for kw in DB_QUERY_KEYWORDS)
     
     # Hash for cache
@@ -92,6 +95,32 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
         if not final_message:
             return {"reply": "Maaf, sistem sedang dalam kapasitas terbatas. Silakan coba lagi dalam beberapa saat."}
             
+        # AUTO-INJECT UI CARDS DARI TOOL MESSAGE
+        # Cari pesan alat (ToolMessage) dari eksekusi terbaru untuk menyisipkan data terstruktur ke UI
+        is_doc_not_found = False
+        for msg in reversed(response["messages"]):
+            if hasattr(msg, 'type') and msg.type == 'tool':
+                tool_name = getattr(msg, 'name', '')
+                content = getattr(msg, 'content', '')
+                if tool_name == "search_knowledge_base_tool" and "informasi tidak ditemukan" in content:
+                    is_doc_not_found = True
+                    break
+                elif tool_name == "get_available_doctors_tool" and "available_schedules" in content:
+                    final_message += f"\n<JadwalData>{content}</JadwalData>"
+                    break
+                elif tool_name == "book_appointment_tool" and "booking_success" in content:
+                    final_message += f"\n<BookingSuccess>{content}</BookingSuccess>"
+                    break
+                elif tool_name == "check_my_appointments_tool" and "appointments" in content:
+                    final_message += f"\n<AppointmentsList>{content}</AppointmentsList>"
+                    break
+                elif tool_name == "check_complaint_status_tool" and "complaint_status" in content:
+                    final_message += f"\n<ComplaintStatus>{content}</ComplaintStatus>"
+                    break
+                elif tool_name == "find_complaints_by_contact_tool" and "complaints_list" in content:
+                    final_message += f"\n<ComplaintsList>{content}</ComplaintsList>"
+                    break
+                    
         # Log Token Usage (Gemini default)
         ai_msg = response["messages"][-1]
         token_in, token_out = 0, 0
@@ -103,7 +132,7 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
         
         # Deteksi Log Gagal jika jawaban bot buntu
         resp_lower = final_message.lower()
-        if resp_lower.startswith("maaf, informasi tidak ditemukan:"):
+        if is_doc_not_found:
             log_interaksi_gagal(req.session_id, req.message, "dokumen_tidak_ditemukan", None)
         elif "kurang mengerti" in resp_lower or "bisa diperjelas" in resp_lower:
             log_interaksi_gagal(req.session_id, req.message, "intent_tidak_jelas", None)
@@ -112,8 +141,7 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
         
         # JANGAN cache jawaban yang mengandung data dinamis dari database
         # JANGAN cache jawaban gagal/tidak ditemukan agar tidak menghalangi dokumen baru
-        is_failed_answer = "informasi tidak ditemukan" in resp_lower or "tidak tersedia di basis pengetahuan" in resp_lower
-        if not is_db_query and not is_failed_answer and not any(tag in final_message for tag in ["<JadwalData>", "<BookingSuccess>", "<AppointmentsList>", "<ComplaintStatus>", "<ComplaintsList>"]):
+        if not is_db_query and not is_doc_not_found and not any(tag in final_message for tag in ["<JadwalData>", "<BookingSuccess>", "<AppointmentsList>", "<ComplaintStatus>", "<ComplaintsList>"]):
             set_cache(prompt_hash, result)
             
         return result
@@ -123,12 +151,12 @@ def chat_endpoint(req: ChatRequest, _ = Depends(verify_internal_secret)):
         log_interaksi_gagal(req.session_id, req.message, "tool_error", None)
         
         error_msg = str(e)
-        if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
-            print("Rate limit exceeded after max_retries.")
-            return {"reply": "Sistem sedang sibuk, coba lagi dalam beberapa menit."}
+        if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg or "413" in error_msg or "rate_limit_exceeded" in error_msg:
+            print(f"Rate limit / Token exceeded: {error_msg}")
+            return {"reply": "Mohon maaf, kapasitas memori percakapan saat ini penuh atau sistem sedang sibuk. Silakan segarkan (refresh) halaman untuk memulai sesi percakapan baru."}
         else:
             print(f"Error pada chat_endpoint: {e}")
-            return {"reply": f"Mohon maaf, sistem sedang mengalami gangguan saat memproses pertanyaan Anda. [Debug: {error_msg}]"}
+            return {"reply": "Mohon maaf, sistem sedang mengalami gangguan teknis internal saat memproses pertanyaan Anda. Silakan coba beberapa saat lagi."}
 
 @app.get("/")
 def read_root():

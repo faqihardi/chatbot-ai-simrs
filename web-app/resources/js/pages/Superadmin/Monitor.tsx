@@ -33,6 +33,7 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Auth } from '@/types';
 import { Activity, CreditCard, Cpu, Clock } from 'lucide-react';
 
 interface LogPemakaianApi {
@@ -75,7 +76,7 @@ interface PageProps {
         start_date?: string;
         end_date?: string;
     };
-    auth: any;
+    auth: Auth;
 }
 
 export default function Monitor({ stats, logs, filters, auth }: PageProps) {

@@ -173,7 +173,9 @@ export default function BookingIndex({ bookings, filters }: { bookings: Paginate
                         <TableHeader className="bg-muted/50">
                             <TableRow>
                                 <TableHead className="font-bold">Antrean</TableHead>
+                                <TableHead className="font-bold">No. Booking</TableHead>
                                 <TableHead className="font-bold">Pasien</TableHead>
+                                <TableHead className="font-bold">Kontak</TableHead>
                                 <TableHead className="font-bold">Poli & Dokter</TableHead>
                                 <TableHead className="font-bold">Jadwal Kunjungan</TableHead>
                                 <TableHead className="font-bold">Status</TableHead>
@@ -193,6 +195,9 @@ export default function BookingIndex({ bookings, filters }: { bookings: Paginate
                                         <TableCell className="font-medium text-lg">
                                             {row.nomor_antrean || '-'}
                                         </TableCell>
+                                        <TableCell className="font-mono text-sm">
+                                            {row.nomor_booking || '-'}
+                                        </TableCell>
                                         <TableCell>
                                             <div className="flex flex-col">
                                                 <span className="font-medium">{row.nama_pasien || '-'}</span>
@@ -200,6 +205,9 @@ export default function BookingIndex({ bookings, filters }: { bookings: Paginate
                                                     {row.tipe_pasien === 'baru' ? 'Pasien Baru' : 'Lama'} • {row.jenis_pembayaran}
                                                 </span>
                                             </div>
+                                        </TableCell>
+                                        <TableCell className="text-sm">
+                                            {row.kontak_terenkripsi || '-'}
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex flex-col">

@@ -99,10 +99,11 @@ class ChatController extends Controller
             return [
                 'nomor_booking' => $b->nomor_booking,
                 'nomor_antrean' => $b->nomor_antrean,
+                'nama_pasien' => $b->nama_pasien,
                 'dokter_nama' => $b->slot->dokter->nama,
                 'poli_nama' => $b->slot->dokter->poli->nama,
-                'tanggal' => $b->slot->tanggal,
-                'jam' => substr($b->slot->jam_mulai, 0, 5) . ' - ' . substr($b->slot->jam_selesai, 0, 5),
+                'tanggal' => $b->slot->tanggal->format('Y-m-d'),
+                'jam' => $b->slot->jam_mulai->format('H:i') . ' - ' . $b->slot->jam_selesai->format('H:i'),
                 'status' => $b->status->value ?? $b->status,
             ];
         })->values();

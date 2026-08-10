@@ -82,6 +82,7 @@ class AduanController extends Controller
                 'nomor_tiket' => $a->nomor_tiket,
                 'kategori' => $a->kategori,
                 'deskripsi' => $a->deskripsi,
+                'tanggapan' => $a->tanggapan,
                 'urgensi' => $a->urgensi->value ?? $a->urgensi,
                 'status' => $a->status->value ?? $a->status,
                 'created_at' => $a->created_at->format('Y-m-d H:i:s'),

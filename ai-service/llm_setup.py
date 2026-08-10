@@ -49,13 +49,15 @@ class HybridLLM(Runnable):
             model_name=intent_model_name,
             groq_api_key=os.getenv("GROQ_API_KEY"),
             temperature=0,
-            max_retries=3
+            max_retries=3,
+            max_tokens=1024
         )
         self.generation_llm = generation_llm or ChatGroq(
             model_name=generation_model_name,
             groq_api_key=os.getenv("GROQ_API_KEY"),
             temperature=0,
-            max_retries=3
+            max_retries=3,
+            max_tokens=1024
         )
         
     def _get_messages(self, input_data):

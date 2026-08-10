@@ -6,13 +6,14 @@ import { Toaster } from '@/components/ui/sonner';
 import { usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
+import { PageProps } from '@/types';
 
 interface AppLayoutProps {
     children: React.ReactNode;
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-    const { flash } = usePage().props as any;
+    const { flash } = usePage<PageProps>().props;
 
     useEffect(() => {
         if (flash?.success) {

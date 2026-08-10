@@ -37,7 +37,7 @@ interface Aduan {
     status: string;
     tanggapan: string | null;
     deskripsi: string;
-    lokasi_kejadian?: string | null;
+    lokasi?: string | null;
     created_at: string;
     ditindaklanjuti_pada: string | null;
     selesai_pada: string | null;
@@ -150,7 +150,7 @@ export default function RiwayatAduan({ aduans, filters }: { aduans: PaginatedAdu
                                             )}
                                         </TableCell>
                                         <TableCell className="pt-3">
-                                            <Badge variant={getStatusVariant(row.status) as any} className={getStatusColor(row.status)}>
+                                            <Badge variant={getStatusVariant(row.status) as "default" | "secondary" | "destructive" | "outline"} className={getStatusColor(row.status)}>
                                                 {row.status.toUpperCase()}
                                             </Badge>
                                         </TableCell>

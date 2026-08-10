@@ -30,6 +30,18 @@ interface PageProps {
     [key: string]: unknown;
 }
 
+interface ISpeechRecognition {
+    start(): void;
+    stop(): void;
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    onstart?: () => void;
+    onresult: (event: any) => void;
+    onerror: (event: { error: string }) => void;
+    onend: () => void;
+}
+
 export default function Chat({ embedded = false }: ChatProps) {
     const { auth } = usePage<PageProps>().props;
     const [messages, setMessages] = useState<Message[]>([]);
@@ -38,7 +50,7 @@ export default function Chat({ embedded = false }: ChatProps) {
     const [isRecording, setIsRecording] = useState(false);
     const [token, setToken] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const recognitionRef = useRef<any>(null);
+    const recognitionRef = useRef<ISpeechRecognition | null>(null);
 
     const renderMessageContent = (content: string) => {
         const jadwalRegex = /<JadwalData>([\s\S]*?)(?:<\/JadwalData>|<JadwalData>|$)/;
@@ -141,7 +153,7 @@ export default function Chat({ embedded = false }: ChatProps) {
                 {appointmentsListData && (
                     <div className="flex flex-col gap-2 mt-2">
                         <span className="text-sm font-bold text-primary">Daftar Janji Temu Aktif Anda</span>
-                        {Array.isArray(appointmentsListData.bookings) && appointmentsListData.bookings.map((app: any, idx: number) => (
+                        {Array.isArray(appointmentsListData.bookings) && appointmentsListData.bookings.map((app: Record<string, string>, idx: number) => (
                             <Card key={idx} className={`border-l-4 ${app.status === 'terjadwal' ? 'border-l-blue-500' : 'border-l-gray-400'}`}>
                                 <CardContent className="p-3 text-sm">
                                     <div className="flex justify-between mb-1">
@@ -201,7 +213,7 @@ export default function Chat({ embedded = false }: ChatProps) {
                 {complaintsListData && Array.isArray(complaintsListData.aduans) && complaintsListData.aduans.length > 0 && (
                     <div className="flex flex-col gap-2 mt-2">
                         <span className="text-sm font-bold text-primary">Daftar Riwayat Aduan Anda</span>
-                        {Array.isArray(complaintsListData.aduans) && complaintsListData.aduans.map((ad: any, idx: number) => (
+                        {Array.isArray(complaintsListData.aduans) && complaintsListData.aduans.map((ad: Record<string, string>, idx: number) => (
                             <Card key={idx} className={`border-l-4 ${ad.status === 'selesai' ? 'border-l-green-500' : ad.status === 'ditolak' ? 'border-l-red-500' : 'border-l-yellow-500'}`}>
                                 <CardContent className="p-3 text-sm">
                                     <div className="flex justify-between mb-1">
@@ -348,7 +360,7 @@ export default function Chat({ embedded = false }: ChatProps) {
             }
             setIsRecording(false);
         } else {
-            const SpeechRecognition = (window as unknown as { SpeechRecognition: any }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition: any }).webkitSpeechRecognition;
+            const SpeechRecognition = (window as unknown as { SpeechRecognition: new () => ISpeechRecognition }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition: new () => ISpeechRecognition }).webkitSpeechRecognition;
             if (!SpeechRecognition) {
                 alert("Maaf, browser Anda tidak mendukung fitur input suara.");
                 return;
@@ -360,7 +372,7 @@ export default function Chat({ embedded = false }: ChatProps) {
             recognition.interimResults = false;
 
             recognition.onstart = () => setIsRecording(true);
-            recognition.onresult = (event: { results: { transcript: string }[][] }) => {
+            recognition.onresult = (event: any) => {
                 const transcript = event.results[0][0].transcript;
                 setInput((prev) => (prev ? prev + ' ' : '') + transcript);
             };

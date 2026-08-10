@@ -80,19 +80,7 @@ class JadwalService
             throw new Exception("Jam mulai harus sebelum jam selesai.");
         }
 
-        // Cek Overlap
-        $hasOverlap = JadwalSlot::where('dokter_id', $dokterId)
-            ->where('tanggal', $tanggal)
-            ->where(function ($q) use ($jamMulai, $jamSelesai) {
-                $q->where('jam_mulai', '<', $jamSelesai)
-                  ->where('jam_selesai', '>', $jamMulai);
-            })->exists();
-
-        if ($hasOverlap) {
-            throw new Exception("Gagal membuat jadwal: Terdapat irisan (overlap) dengan jadwal slot yang sudah ada.");
-        }
-
-        // Generate slots
+        // Generate slots array (belum di-insert)
         $slotsToInsert = [];
         $current = $start->copy();
 
@@ -115,7 +103,22 @@ class JadwalService
             throw new Exception("Durasi terlalu panjang untuk rentang waktu yang diberikan.");
         }
 
-        DB::transaction(function () use ($slotsToInsert) {
+        DB::transaction(function () use ($dokterId, $tanggal, $jamMulai, $jamSelesai, $slotsToInsert) {
+            // Lock entitas dokter (Pessimistic Locking) untuk mencegah race condition
+            \App\Models\Dokter::where('id', $dokterId)->lockForUpdate()->first();
+
+            // Cek Overlap di dalam transaksi setelah di-lock
+            $hasOverlap = JadwalSlot::where('dokter_id', $dokterId)
+                ->where('tanggal', $tanggal)
+                ->where(function ($q) use ($jamMulai, $jamSelesai) {
+                    $q->where('jam_mulai', '<', $jamSelesai)
+                      ->where('jam_selesai', '>', $jamMulai);
+                })->exists();
+
+            if ($hasOverlap) {
+                throw new Exception("Gagal membuat jadwal: Terdapat irisan (overlap) dengan jadwal slot yang sudah ada.");
+            }
+
             JadwalSlot::insert($slotsToInsert);
         });
 
@@ -124,12 +127,17 @@ class JadwalService
 
     public function deleteSlotIfNoHistory(int $slotId)
     {
-        $slot = JadwalSlot::withCount('bookings')->findOrFail($slotId);
+        DB::transaction(function () use ($slotId) {
+            // Pessimistic Locking agar tidak terjadi TOCTOU (Time-of-Check to Time-of-Use)
+            $slot = JadwalSlot::withCount('bookings')
+                ->lockForUpdate()
+                ->findOrFail($slotId);
 
-        if ($slot->bookings_count > 0) {
-            throw new Exception("Slot ini tidak dapat dihapus karena pernah memiliki riwayat booking.");
-        }
+            if ($slot->bookings_count > 0) {
+                throw new Exception("Slot ini tidak dapat dihapus karena pernah memiliki riwayat booking.");
+            }
 
-        $slot->delete();
+            $slot->delete();
+        });
     }
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { CalendarDays, Clock, Stethoscope, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -49,7 +49,7 @@ export default function JadwalCard({ data, tokenSesi, onBookingSuccess }: Jadwal
     const [kontak, setKontak] = useState('');
     const [jenisPembayaran, setJenisPembayaran] = useState('umum');
     const [keluhanSingkat, setKeluhanSingkat] = useState('');
-    const [draftBooking, setDraftBooking] = useState<any>(null);
+    const [draftBooking, setDraftBooking] = useState<{ nomor_booking: string } | null>(null);
 
     const handleOpen = (slot: Slot) => {
         setSelectedSlot(slot);
@@ -88,9 +88,9 @@ export default function JadwalCard({ data, tokenSesi, onBookingSuccess }: Jadwal
             } else {
                 setError(response.data.message || 'Gagal membuat draft pendaftaran.');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            setError(err.response?.data?.message || 'Terjadi kesalahan sistem saat mendaftar.');
+            setError((err as AxiosError<{message?: string}>).response?.data?.message || 'Terjadi kesalahan sistem saat mendaftar.');
         } finally {
             setLoading(false);
         }
@@ -122,9 +122,9 @@ export default function JadwalCard({ data, tokenSesi, onBookingSuccess }: Jadwal
             } else {
                 setError(response.data.message || 'Gagal mengonfirmasi pendaftaran.');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            setError(err.response?.data?.message || 'Gagal mengonfirmasi pendaftaran karena slot sudah penuh.');
+            setError((err as AxiosError<{message?: string}>).response?.data?.message || 'Gagal mengonfirmasi pendaftaran karena slot sudah penuh.');
         } finally {
             setLoading(false);
         }

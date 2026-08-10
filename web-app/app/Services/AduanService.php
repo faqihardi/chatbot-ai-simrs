@@ -42,6 +42,23 @@ class AduanService
         $nomorNormal = $kontak ? ContactHelper::normalisasiNomorHp($kontak) : null;
         $kontakHash = $nomorNormal ? hash('sha256', $nomorNormal) : null;
 
+        // Cegah Duplikasi: Cek aduan dengan deskripsi sama dalam 10 menit terakhir
+        $recentQuery = Aduan::where('deskripsi', $data['description'])
+            ->where('created_at', '>=', now()->subMinutes(10));
+            
+        if ($sesi_id) {
+            $recentQuery->where('sesi_id', $sesi_id);
+        } elseif ($kontakHash) {
+            $recentQuery->where('kontak_hash', $kontakHash);
+        } elseif ($staf_id) {
+            $recentQuery->where('staf_id', $staf_id);
+        }
+
+        $existing = $recentQuery->first();
+        if ($existing) {
+            return $existing;
+        }
+
         return Aduan::create([
             'nomor_tiket' => $nomorTiket,
             'tipe_pengadu' => $data['submitter_type'],

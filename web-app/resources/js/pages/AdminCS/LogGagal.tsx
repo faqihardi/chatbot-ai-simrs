@@ -29,6 +29,7 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Auth } from '@/types';
 
 interface LogGagal {
     id: number;
@@ -63,7 +64,7 @@ interface PageProps {
         start_date?: string;
         end_date?: string;
     };
-    auth: any;
+    auth: Auth;
 }
 
 export default function LogGagal({ logs, filters, auth }: PageProps) {

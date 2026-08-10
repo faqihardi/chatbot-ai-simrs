@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePage, router } from '@inertiajs/react';
+import { PageProps } from '@/types';
 import { Moon, Sun, Menu, User, LogOut } from 'lucide-react';
 import { useThemeMode } from '../../context/ThemeModeContext';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
@@ -27,7 +28,7 @@ import {
 } from '@/components/ui/tooltip';
 
 export default function Topbar() {
-    const { auth } = usePage().props as any;
+    const { auth } = usePage<PageProps>().props;
     const { mode, toggleMode } = useThemeMode();
     const { state } = useSidebar();
     

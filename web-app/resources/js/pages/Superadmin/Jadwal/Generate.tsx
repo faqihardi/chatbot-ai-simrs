@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import { CalendarDays, Clock, Trash2, PlusCircle, AlertCircle, CheckCircle } from 'lucide-react';
 import {
@@ -118,8 +118,8 @@ export default function GenerateSlot({ dokters }: { dokters: Dokter[] }) {
                 toast.success(response.data.message);
                 fetchSlots();
             }
-        } catch (error: any) {
-            const msg = error.response?.data?.message || 'Gagal menghapus slot';
+        } catch (error: unknown) {
+            const msg = (error as AxiosError<{message?: string}>).response?.data?.message || 'Gagal menghapus slot';
             toast.error(msg);
         } finally {
             setSlotToDelete(null);
@@ -153,8 +153,8 @@ export default function GenerateSlot({ dokters }: { dokters: Dokter[] }) {
                 toast.success(response.data.message);
                 fetchSlots();
             }
-        } catch (error: any) {
-            const msg = error.response?.data?.message || 'Gagal menghapus slot batch';
+        } catch (error: unknown) {
+            const msg = (error as AxiosError<{message?: string}>).response?.data?.message || 'Gagal menghapus beberapa slot';
             toast.error(msg);
         }
     };

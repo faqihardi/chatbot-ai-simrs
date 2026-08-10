@@ -30,15 +30,15 @@ export default function Welcome() {
 
             <main className="flex-1">
                 {/* Hero Section */}
-                <section className="container mx-auto px-4 md:px-6 py-16 md:py-24 lg:py-32">
-                    <div className="flex flex-col-reverse lg:flex-row items-center justify-between gap-12 lg:gap-8">
+                <section className="container mx-auto px-4 md:px-6 py-16 md:py-24 lg:py-32 min-h-[calc(100vh-4rem)] flex items-center">
+                    <div className="flex w-full flex-col-reverse lg:flex-row items-center justify-between gap-12 lg:gap-8">
                         <div className="flex-1 text-center lg:text-left space-y-6">
                             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
-                                Kesehatan Anda,<br />
-                                <span className="text-primary">Satu Chat Saja.</span>
+                                <span className="text-primary">TechnoZ</span>,<br />
+                                Asisten AI untuk Informasi dan Layanan Kesehatan.
                             </h1>
                             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                                Tanya info rumah sakit, buat janji temu rawat jalan, atau sampaikan keluhan — semua dengan mudah dan cepat lewat chat AI kami.
+                                Tanya info rumah sakit, lakukan pendaftaran rawat jalan, atau sampaikan keluhan — semua dengan mudah dan cepat lewat asisten AI kami.
                             </p>
                             <div className="pt-4 flex flex-col sm:flex-row justify-center lg:justify-start gap-4">
                                 <Link href="/chat">
@@ -80,7 +80,7 @@ export default function Welcome() {
                                 <div className="absolute -bottom-6 -right-6 bg-background border shadow-xl rounded-xl p-4 flex items-center gap-3 z-20 hover:scale-105 transition-transform duration-300">
                                     <CalendarDays className="h-8 w-8 text-blue-500" />
                                     <div className="flex flex-col">
-                                        <span className="text-xs font-bold text-muted-foreground">Janji Temu</span>
+                                        <span className="text-xs font-bold text-muted-foreground">Pendaftaran</span>
                                         <span className="text-sm font-black text-foreground">Terkonfirmasi</span>
                                     </div>
                                 </div>
@@ -115,11 +115,11 @@ export default function Welcome() {
                                     <div className="h-12 w-12 bg-primary/10 text-primary flex items-center justify-center rounded-lg mb-4">
                                         <CalendarDays className="h-6 w-6" />
                                     </div>
-                                    <CardTitle className="text-xl">Janji Temu</CardTitle>
+                                    <CardTitle className="text-xl">Pendaftaran</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <CardDescription className="text-base text-foreground/80 leading-relaxed">
-                                        Cek ketersediaan slot jadwal dokter spesialis dan buat janji temu rawat jalan secara otomatis tanpa perlu antre di loket.
+                                        Cek ketersediaan slot jadwal dokter spesialis dan lakukan pendaftaran rawat jalan secara otomatis tanpa perlu antre di loket.
                                     </CardDescription>
                                 </CardContent>
                             </Card>

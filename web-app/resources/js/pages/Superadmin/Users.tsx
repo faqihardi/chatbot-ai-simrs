@@ -42,8 +42,10 @@ interface User {
     created_at: string;
 }
 
+import { PageProps } from '@/types';
+
 export default function UsersMaster({ users }: { users: User[] }) {
-    const { auth } = usePage().props as any;
+    const { auth } = usePage<PageProps>().props;
     const currentUser = auth.user;
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);

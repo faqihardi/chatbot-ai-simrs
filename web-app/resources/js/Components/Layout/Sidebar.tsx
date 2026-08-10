@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePage, Link, router } from '@inertiajs/react';
+import { PageProps } from '@/types';
 import { LogOut, SquareTerminal } from 'lucide-react';
 import { getMenusByRole } from '../../config/menu';
 import {
@@ -16,7 +17,7 @@ import {
 } from '@/components/ui/sidebar';
 
 export default function Sidebar() {
-    const { props, url } = usePage() as any;
+    const { props, url } = usePage<PageProps>();
     const auth = props.auth;
     const userRole = auth?.user?.role || 'admin_cs';
     const { state } = useSidebar();
@@ -47,7 +48,7 @@ export default function Sidebar() {
                             </div>
                             <div className="flex flex-col gap-0.5 leading-none">
                                 <span className="font-semibold text-foreground tracking-tight">{sidebarTitle}</span>
-                                <span className="text-xs text-muted-foreground">{userRole}</span>
+                                <span className="text-xs text-muted-foreground">{auth?.user?.name || userRole}</span>
                             </div>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
