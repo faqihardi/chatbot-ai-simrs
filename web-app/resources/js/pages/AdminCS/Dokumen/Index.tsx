@@ -90,6 +90,21 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: Paginate
         return () => clearTimeout(delayDebounceFn);
     }, [search, status]);
 
+    // Smart Polling untuk status dokumen yang masih "Menunggu"
+    useEffect(() => {
+        const hasPendingDocuments = dokumens.data.some(
+            (doc) => !doc.chunks_count || doc.chunks_count === 0
+        );
+
+        if (hasPendingDocuments) {
+            const interval = setInterval(() => {
+                router.reload({ only: ['dokumens'] });
+            }, 3000);
+
+            return () => clearInterval(interval);
+        }
+    }, [dokumens.data]);
+
     // Menangkap parameter dari URL (misalnya dari Log Gagal)
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -126,11 +141,6 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: Paginate
         setIsModalOpen(true);
     };
 
-    const handleDelete = (id: number) => {
-        if (confirm('Apakah Anda yakin ingin menghapus dokumen ini?')) {
-            destroy(`/admin/dokumen/${id}`);
-        }
-    };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -236,7 +246,7 @@ export default function DokumenIndex({ dokumens, filters }: { dokumens: Paginate
                                 <TableHead className="font-bold">Kategori</TableHead>
                                 <TableHead className="font-bold">Versi</TableHead>
                                 <TableHead className="font-bold text-center">Checksum</TableHead>
-                                <TableHead className="font-bold text-center">Status AI</TableHead>
+                                <TableHead className="font-bold text-center">Embeddings (Chunks)</TableHead>
                                 <TableHead className="font-bold text-center">Aktif</TableHead>
                                 <TableHead className="font-bold text-right">Aksi</TableHead>
                             </TableRow>

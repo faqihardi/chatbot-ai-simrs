@@ -40,7 +40,7 @@ def mmr_select(candidates, k=5, lambda_mult=0.7):
     
     return selected
 
-def search_knowledge_base(query: str, limit: int = 5, similarity_threshold: float = 0.4) -> str:
+def search_knowledge_base(query: str, limit: int = 3, similarity_threshold: float = 0.4) -> str:
     """
     Mencari dokumen yang relevan dari basis pengetahuan menggunakan MMR (Maximal Marginal Relevance).
     """

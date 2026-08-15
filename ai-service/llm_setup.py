@@ -50,7 +50,7 @@ class HybridLLM(Runnable):
             groq_api_key=os.getenv("GROQ_API_KEY"),
             temperature=0,
             max_retries=3,
-            max_tokens=1024
+            max_tokens=512
         )
         self.generation_llm = generation_llm or ChatGroq(
             model_name=generation_model_name,
@@ -88,7 +88,7 @@ class HybridLLM(Runnable):
             # FALLBACK LOGIC
             if messages and hasattr(messages[-1], 'content'):
                 query = messages[-1].content.lower()
-                rs_keywords = ["rs", "rumah", "sakit", "techno", "medic", "lokasi", "alamat", "jadwal", "poli", "dokter", "biaya", "bpjs", "asuransi", "fasilitas", "cara", "letak", "berada"]
+                rs_keywords = ["rs", "rumah", "sakit", "techno", "medic", "lokasi", "alamat", "jadwal", "poli", "dokter", "biaya", "bpjs", "asuransi", "fasilitas", "cara", "letak", "berada", "hak", "kewajiban", "pasien", "aturan", "syarat", "ketentuan", "informasi", "prosedur"]
                 is_rs_related = any(k in query for k in rs_keywords)
                 
                 tool_calls = getattr(response, 'tool_calls', [])

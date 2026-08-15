@@ -199,5 +199,5 @@ KASUS KHUSUS
 - Berikan jawaban ramah, profesional, dan ringkas dalam Bahasa Indonesia
 """
 
-# Buat ReAct Agent yang bisa memanggil tools
+# ReAct Agent yang bisa memanggil tools
 agent_executor = create_react_agent(llm, tools, prompt=system_prompt)

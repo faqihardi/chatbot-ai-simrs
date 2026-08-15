@@ -55,7 +55,7 @@ class DokumenController extends Controller
         // Trigger FastAPI for processing chunks and embeddings
         $this->triggerFastApiReprocess($dokumen->id);
 
-        return redirect()->back()->with('success', 'Dokumen berhasil ditambahkan dan diproses AI.');
+        return redirect()->back()->with('success', 'Dokumen berhasil ditambahkan dan embeddings ...');
     }
 
     public function update(Request $request, Dokumen $dokumen)
@@ -85,9 +85,9 @@ class DokumenController extends Controller
         if ($isiBerubah) {
             // Trigger FastAPI only if content changed
             $this->triggerFastApiReprocess($dokumen->id);
-            $msg = 'Dokumen berhasil diperbarui dan diproses ulang oleh AI.';
+            $msg = 'Dokumen berhasil diperbarui dan re-embeddings...';
         } else {
-            $msg = 'Dokumen berhasil diperbarui (Isi tidak berubah, AI skip).';
+            $msg = 'Dokumen berhasil diperbarui (skip re-embeddings).';
         }
 
         return redirect()->back()->with('success', $msg);
